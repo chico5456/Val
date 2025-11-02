@@ -84,6 +84,7 @@ let riggingQueens = [];
 let riggingEpisodeIndex = null;
 let riggingLastEpisodeIndex = -1;
 let riggingActive = false;
+let riggingReturnCallback = null;
 
 
 let reads = [
@@ -9326,6 +9327,18 @@ let DragRaceQueens = [
 
 function WhoGetsCritiques()
 {
+  if(CurrentSeason.episodes.length > 0)
+  {
+    let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+    if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
+    {
+      riggingEpisodeIndex = null;
+      setRiggingReturnCallback(WhoGetsCritiques);
+      Rigging();
+      return;
+    }
+  }
+
   let Main = new Screen();
 
   let firstnames = "";
@@ -11449,6 +11462,18 @@ function Placements() {
 
 function DoublePremiereLipsync() {
   // Special lipsync for double premiere - TOP2 lipsync for the WIN, no elimination
+  if(CurrentSeason.episodes.length > 0)
+  {
+    let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+    if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
+    {
+      riggingEpisodeIndex = null;
+      setRiggingReturnCallback(DoublePremiereLipsync);
+      Rigging();
+      return;
+    }
+  }
+
   Main = new Screen();
   Main.clean();
 
@@ -11505,6 +11530,18 @@ function DoublePremiereLipsync() {
 }
 
 function Lipsync() {
+  if(CurrentSeason.episodes.length > 0)
+  {
+    let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+    if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
+    {
+      riggingEpisodeIndex = null;
+      setRiggingReturnCallback(Lipsync);
+      Rigging();
+      return;
+    }
+  }
+
   Main = new Screen();
   Main.clean();
 
@@ -12413,6 +12450,7 @@ function GetPromoTable()
       if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
       {
         riggingEpisodeIndex = null;
+        setRiggingReturnCallback(GetPromoTable);
         Rigging();
         return;
       }
@@ -13915,6 +13953,32 @@ function createPlacementBadgeElement(placement, size = "small")
   return badge;
 }
 
+function setRiggingReturnCallback(callback)
+{
+  if(typeof callback === "function")
+  {
+    riggingReturnCallback = callback;
+  }
+  else
+  {
+    riggingReturnCallback = null;
+  }
+}
+
+function invokeRiggingReturnCallback()
+{
+  let callback = riggingReturnCallback;
+  riggingReturnCallback = null;
+  if(typeof callback === "function")
+  {
+    callback();
+  }
+  else
+  {
+    GetPromoTable();
+  }
+}
+
 function prepareRiggingForEpisode(episodeIndex)
 {
   if(episodeIndex == null || episodeIndex < 0)
@@ -13978,6 +14042,11 @@ function Rigging()
     return;
   }
 
+  if(typeof riggingReturnCallback !== "function")
+  {
+    riggingReturnCallback = GetPromoTable;
+  }
+
   if(riggingEpisodeIndex === null)
   {
     let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
@@ -13985,7 +14054,7 @@ function Rigging()
     {
       riggingLastEpisodeIndex = latestEpisodeIndex;
       riggingActive = false;
-      GetPromoTable();
+      invokeRiggingReturnCallback();
       return;
     }
   }
@@ -13996,7 +14065,7 @@ function Rigging()
     riggingEpisodeIndex = null;
     riggingLastEpisodeIndex = completedEpisodeIndex;
     riggingActive = false;
-    GetPromoTable();
+    invokeRiggingReturnCallback();
     return;
   }
 
@@ -14164,7 +14233,7 @@ function ApplyRigging()
   if(riggingQueens.length === 0 || riggingEpisodeIndex === null)
   {
     riggingActive = false;
-    GetPromoTable();
+    invokeRiggingReturnCallback();
     return;
   }
 
@@ -14202,7 +14271,7 @@ function ApplyRigging()
   riggingActive = false;
 
   SyncDoublePremiereTrackRecords();
-  GetPromoTable();
+  invokeRiggingReturnCallback();
 }
 
 function SkipRigging()
@@ -14210,7 +14279,7 @@ function SkipRigging()
   if(riggingEpisodeIndex === null)
   {
     riggingActive = false;
-    GetPromoTable();
+    invokeRiggingReturnCallback();
     return;
   }
 
@@ -14221,7 +14290,7 @@ function SkipRigging()
   riggingActive = false;
 
   SyncDoublePremiereTrackRecords();
-  GetPromoTable();
+  invokeRiggingReturnCallback();
 }
 
 function convertToImage() {
