@@ -1,5 +1,5 @@
 //#region Initialisers
-// CACHE BUSTER v1.3 - Fixed entrance pos condition bug
+// CACHE BUSTER v1.4 - Check entrancepos == 0 to trigger reset
 let CurrentSeason;
 let CurrentChallenge;
 let CurrentEpisode;
@@ -14011,18 +14011,24 @@ function CreateEntrances()
     console.log("Current cast before adjustment:", CurrentSeason.currentCast.map(q => q.name));
     console.log("secondGroupEntrancesShown flag:", secondGroupEntrancesShown);
 
-    // For DOUBLE premiere episode 2, ALWAYS set currentCast to second group at the VERY START
-    // Remove the entrancepos check - we need to set this ONCE when entering episode 2
-    if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1 && !secondGroupEntrancesShown)
+    // For DOUBLE premiere episode 2, set currentCast to second group on FIRST call (entrancepos == 0 or at firstprem.length)
+    // The key is: if we're starting episode 2 entrances, currentCast should be secondprem
+    if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1)
     {
-      console.log("==> INITIALIZING Episode 2 - Setting currentCast to SECOND GROUP (UNCONDITIONALLY)");
-      entrancepos = 0;
-      CurrentSeason.currentCast = [];
-      for (let index = 0; index < secondprem.length; index++) {
-        CurrentSeason.currentCast.push(secondprem[index]);
+      // Check if we're at the start (entrancepos == 0) OR coming from episode 1 (entrancepos >= firstprem.length)
+      // Either way, ensure currentCast is the second group
+      if(entrancepos == 0 || entrancepos >= firstprem.length)
+      {
+        console.log("==> INITIALIZING Episode 2 - Setting currentCast to SECOND GROUP");
+        console.log("==> Trigger reason: entrancepos =", entrancepos);
+        entrancepos = 0;
+        CurrentSeason.currentCast = [];
+        for (let index = 0; index < secondprem.length; index++) {
+          CurrentSeason.currentCast.push(secondprem[index]);
+        }
+        console.log("==> New currentCast (SECOND GROUP):", CurrentSeason.currentCast.map(q => q.name));
+        console.log("==> Entrance pos after reset:", entrancepos);
       }
-      console.log("==> New currentCast (SECOND GROUP):", CurrentSeason.currentCast.map(q => q.name));
-      console.log("==> Entrance pos after reset:", entrancepos);
     }
 
     // For non-DOUBLE premieres (like S6), handle their entrance logic
