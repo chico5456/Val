@@ -12363,6 +12363,7 @@ function GetPromoTable()
     }
     else
     {
+      // For DOUBLE and other split premiere formats, merge groups after episode 2
       if(CurrentSeason.premiereformat!="NORMAL")
       {
         if(CurrentSeason.episodes.length==2 && premreform == false)
@@ -12376,6 +12377,7 @@ function GetPromoTable()
             CurrentSeason.currentCast.push(secondprem[index]);
           }
           premreform = true;
+          entrancepos = 0; // Reset entrance position for merged cast
         }
       }
       if(shouldactivateepisode == true)
@@ -13780,6 +13782,15 @@ function CreateEntrances()
           }
         }
         groupmaking = true;
+
+        // For DOUBLE premiere, set currentCast to only first group for episode 1
+        if(CurrentSeason.premiereformat == "DOUBLE")
+        {
+          CurrentSeason.currentCast = [];
+          for (let index = 0; index < firstprem.length; index++) {
+            CurrentSeason.currentCast.push(firstprem[index]);
+          }
+        }
     }
 
       if(CurrentSeason.premiereformat!="NORMAL")
@@ -13867,6 +13878,20 @@ function CreateEntrances()
   }
   else
   {
+    // For DOUBLE premiere episode 2, set currentCast to second group and reset entrancepos
+    if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1)
+    {
+      // Reset entrancepos when starting episode 2 (coming from episode 1 where entrancepos == firstprem.length)
+      if(entrancepos >= firstprem.length)
+      {
+        entrancepos = 0;
+        CurrentSeason.currentCast = [];
+        for (let index = 0; index < secondprem.length; index++) {
+          CurrentSeason.currentCast.push(secondprem[index]);
+        }
+      }
+    }
+
     let Main = new Screen();
     Main.clean();
     if(entrancepos < secondprem.length)
