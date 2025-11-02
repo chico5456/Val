@@ -1,5 +1,5 @@
 //#region Initialisers
-// CACHE BUSTER v1.2 - Force browser reload
+// CACHE BUSTER v1.3 - Fixed entrance pos condition bug
 let CurrentSeason;
 let CurrentChallenge;
 let CurrentEpisode;
@@ -12331,15 +12331,21 @@ function GetPromoTable()
       console.log("CurrentCast:", CurrentSeason.currentCast.map(q => q.name));
       console.log("Second prem:", secondprem.map(q => q.name));
 
-      // Verify currentCast is the second group
-      if(CurrentSeason.currentCast.length !== secondprem.length)
+      // Verify currentCast is the second group by checking if first queen matches
+      if(CurrentSeason.currentCast[0] !== secondprem[0])
       {
-        console.warn("WARNING: currentCast length doesn't match second group! Fixing...");
+        console.warn("WARNING: currentCast does NOT match second group! Fixing NOW...");
+        console.warn("Current first queen:", CurrentSeason.currentCast[0].name);
+        console.warn("Expected first queen:", secondprem[0].name);
         CurrentSeason.currentCast = [];
         for (let index = 0; index < secondprem.length; index++) {
           CurrentSeason.currentCast.push(secondprem[index]);
         }
-        console.log("Fixed currentCast:", CurrentSeason.currentCast.map(q => q.name));
+        console.log("✅ FIXED currentCast:", CurrentSeason.currentCast.map(q => q.name));
+      }
+      else
+      {
+        console.log("✅ CurrentCast is correct (matches second group)");
       }
     }
 
@@ -14003,11 +14009,13 @@ function CreateEntrances()
     console.log("First prem length:", firstprem.length);
     console.log("Second prem length:", secondprem.length);
     console.log("Current cast before adjustment:", CurrentSeason.currentCast.map(q => q.name));
+    console.log("secondGroupEntrancesShown flag:", secondGroupEntrancesShown);
 
-    // For DOUBLE premiere episode 2, ALWAYS set currentCast to second group at the start
-    if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1 && entrancepos >= firstprem.length)
+    // For DOUBLE premiere episode 2, ALWAYS set currentCast to second group at the VERY START
+    // Remove the entrancepos check - we need to set this ONCE when entering episode 2
+    if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1 && !secondGroupEntrancesShown)
     {
-      console.log("==> RESETTING for Episode 2 - Setting currentCast to SECOND GROUP");
+      console.log("==> INITIALIZING Episode 2 - Setting currentCast to SECOND GROUP (UNCONDITIONALLY)");
       entrancepos = 0;
       CurrentSeason.currentCast = [];
       for (let index = 0; index < secondprem.length; index++) {
