@@ -1,4 +1,5 @@
 //#region Initialisers
+// CACHE BUSTER v1.2 - Force browser reload
 let CurrentSeason;
 let CurrentChallenge;
 let CurrentEpisode;
@@ -12198,6 +12199,14 @@ function shuffle(array) {
 
 function GenerateChallenge()
 {
+  // DOUBLE PREMIERE: Ensure currentCast is correct before generating performances
+  if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length <= 2)
+  {
+    console.log("=== GENERATE CHALLENGE (DOUBLE PREMIERE) ===");
+    console.log("Episode:", CurrentSeason.episodes.length);
+    console.log("CurrentCast before challenge:", CurrentSeason.currentCast.map(q => q.name));
+  }
+
   switch(localStorage.getItem("theme"))
   {
     case "Simple.css":
@@ -12315,6 +12324,24 @@ function GenerateChallenge()
 
 function GetPromoTable()
   {
+    // DOUBLE PREMIERE: Ensure currentCast is correct for episode 2
+    if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1 && secondGroupEntrancesShown)
+    {
+      console.log("=== GET PROMO TABLE - DOUBLE PREMIERE EP2 CHECK ===");
+      console.log("CurrentCast:", CurrentSeason.currentCast.map(q => q.name));
+      console.log("Second prem:", secondprem.map(q => q.name));
+
+      // Verify currentCast is the second group
+      if(CurrentSeason.currentCast.length !== secondprem.length)
+      {
+        console.warn("WARNING: currentCast length doesn't match second group! Fixing...");
+        CurrentSeason.currentCast = [];
+        for (let index = 0; index < secondprem.length; index++) {
+          CurrentSeason.currentCast.push(secondprem[index]);
+        }
+        console.log("Fixed currentCast:", CurrentSeason.currentCast.map(q => q.name));
+      }
+    }
 
     let done;
     for (let index = 0; index < CurrentSeason.storylines; index++) {
@@ -12329,7 +12356,7 @@ function GetPromoTable()
         CurrentSeason.storylines[index].ended = CurrentEpisode.episodes.length;
       }
     }
-    
+
     SlayedChallenge = [];
     GreatChallenge = [];
     GoodChallenge = [];
@@ -12401,7 +12428,17 @@ function GetPromoTable()
   }
 
 function LaunchMiniChallenge()
-{ 
+{
+  // DOUBLE PREMIERE: Log and verify currentCast before mini challenge
+  if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length <= 2)
+  {
+    console.log("=== LAUNCH MINI CHALLENGE (DOUBLE PREMIERE) ===");
+    console.log("Episode:", CurrentSeason.episodes.length);
+    console.log("CurrentCast:", CurrentSeason.currentCast.map(q => q.name));
+    console.log("First prem:", firstprem.map(q => q.name));
+    console.log("Second prem:", secondprem.map(q => q.name));
+  }
+
   Main = new Screen();
   Main.createBigText("In The Werkroom...");
   switch(localStorage.getItem("theme"))
@@ -12686,6 +12723,25 @@ function GenerateRusicalRoles(){
 }
 
 function SelectChallenge(){
+  // DOUBLE PREMIERE: Verify currentCast before challenge selection
+  if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1 && secondGroupEntrancesShown)
+  {
+    console.log("=== SELECT CHALLENGE (DOUBLE PREMIERE EP2) ===");
+    console.log("CurrentCast:", CurrentSeason.currentCast.map(q => q.name));
+    console.log("Should be second group:", secondprem.map(q => q.name));
+
+    // Ensure currentCast is the second group
+    if(CurrentSeason.currentCast[0] !== secondprem[0])
+    {
+      console.warn("WARNING: currentCast is NOT the second group! Fixing immediately...");
+      CurrentSeason.currentCast = [];
+      for (let index = 0; index < secondprem.length; index++) {
+        CurrentSeason.currentCast.push(secondprem[index]);
+      }
+      console.log("Fixed currentCast to:", CurrentSeason.currentCast.map(q => q.name));
+    }
+  }
+
   // Challenge selector UI - allows user to select challenge type
   Main = new Screen();
   Main.clean();
@@ -12723,13 +12779,21 @@ function SelectChallenge(){
 }
 
 function ChallengeAnnouncement(){
+  // DOUBLE PREMIERE: Log currentCast at start of challenge announcement
+  if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length <= 2)
+  {
+    console.log("=== CHALLENGE ANNOUNCEMENT (DOUBLE PREMIERE) ===");
+    console.log("Episode count:", CurrentSeason.episodes.length);
+    console.log("CurrentCast at announcement start:", CurrentSeason.currentCast.map(q => q.name));
+  }
+
   // If a challenge type was selected, use it instead of random
   let userSelectedChallenge = selectedChallengeType;
   selectedChallengeType = null; // Reset for next episode
   for(let i = 0; i<CurrentSeason.currentCast.length; i++)
   {
     CurrentSeason.currentCast[i].miniwinner = false;
-    
+
     CurrentSeason.currentCast[i].episodeson++;
   }
   Main.createBigText("She Had Already Done Had Herses!");
