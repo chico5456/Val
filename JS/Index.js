@@ -85,6 +85,7 @@ let riggingEpisodeIndex = null;
 let riggingLastEpisodeIndex = -1;
 let riggingActive = false;
 let riggingReturnCallback = null;
+let riggingEpisodeOutcomes = {};
 
 
 let reads = [
@@ -11495,23 +11496,97 @@ function DoublePremiereLipsync() {
       break;
     case 2:
       Main.createBigText("The winner is...");
-      TopsQueens[0].GetLipsync();
-      TopsQueens[1].GetLipsync();
-      TopsQueens.sort((a, b) => b.lipsyncscore - a.lipsyncscore);
 
-      Main.createImage(TopsQueens[0].image, "#1741ff");
-      Main.createText(TopsQueens[0].GetName()+", CONDRAGULATIONS! You're the winner of this week's challenge.","Bold");
-      TopsQueens[0].trackrecord.push("WIN");
-      TopsQueens[0].ppe += 5;
-      TopsQueens[0].favoritism += 3;
-      TopsQueens[0].wins++;
+      let episodeIndex = CurrentSeason.episodes.length - 1;
+      let outcome = ensureRiggingOutcome(episodeIndex);
+      let storedResults = outcome && outcome.lipSyncResults && outcome.lipSyncResults.length >= 2 ? outcome.lipSyncResults.slice() : null;
 
-      Main.createImage(TopsQueens[1].image, "lightgreen");
-      Main.createText(TopsQueens[1].GetName()+", you did an amazing job. You are also safe.","Bold");
-      TopsQueens[1].trackrecord.push("TOP2");
-      TopsQueens[1].ppe += 4;
+      if(!storedResults)
+      {
+        storedResults = [];
+        let lipSyncCandidates = TopsQueens.slice(0, 2);
+        for (let idx = 0; idx < lipSyncCandidates.length; idx++)
+        {
+          let queen = lipSyncCandidates[idx];
+          queen.GetLipsync();
+          storedResults.push({queen: queen, score: queen.lipsyncscore, originalScore: queen.oglipsyncscore});
+        }
 
-      let ls = new LipsyncSong([TopsQueens[0],TopsQueens[1]], songschosen, CurrentSeason.episodes.length, 'top2win', "NONE");
+        storedResults.sort((a, b) => b.score - a.score);
+
+        if(outcome)
+        {
+          outcome.lipSyncResults = storedResults;
+        }
+        else
+        {
+          outcome = {
+            type: "DOUBLE_PREMIERE",
+            lipSyncResults: storedResults,
+            placements: new Map()
+          };
+          riggingEpisodeOutcomes[episodeIndex] = outcome;
+        }
+
+        if(outcome && outcome.placements)
+        {
+          if(storedResults[0] && storedResults[0].queen && !outcome.placements.has(storedResults[0].queen))
+          {
+            outcome.placements.set(storedResults[0].queen, "WIN");
+          }
+          if(storedResults[1] && storedResults[1].queen && !outcome.placements.has(storedResults[1].queen))
+          {
+            outcome.placements.set(storedResults[1].queen, "TOP2");
+          }
+        }
+      }
+      else
+      {
+        for (let idx = 0; idx < storedResults.length; idx++)
+        {
+          let entry = storedResults[idx];
+          entry.queen.lipsyncscore = entry.score;
+          entry.queen.oglipsyncscore = entry.originalScore;
+        }
+      }
+
+      let placementsMap = outcome && outcome.placements ? outcome.placements : new Map();
+      let lipSyncers = storedResults.map(entry => entry.queen);
+
+      let winners = lipSyncers.filter(queen => {
+        let normalized = normalizePlacementValue(placementsMap.get(queen));
+        return normalized === "WIN" || normalized === "DOUBLEWIN";
+      });
+
+      let topTwos = lipSyncers.filter(queen => {
+        let normalized = normalizePlacementValue(placementsMap.get(queen));
+        return normalized === "TOP2";
+      });
+
+      let remaining = lipSyncers.filter(queen => winners.indexOf(queen) === -1 && topTwos.indexOf(queen) === -1);
+      let announcementOrder = winners.concat(topTwos, remaining);
+      if(announcementOrder.length === 0)
+      {
+        announcementOrder = lipSyncers;
+      }
+
+      TopsQueens = announcementOrder.slice();
+
+      for (let idx = 0; idx < announcementOrder.length; idx++)
+      {
+        let queen = announcementOrder[idx];
+        let placementValue = placementsMap.get(queen);
+        if(!placementValue || placementValue === "")
+        {
+          placementValue = idx === 0 ? "WIN" : "TOP2";
+          placementsMap.set(queen, placementValue);
+        }
+
+        announceDoublePremierePlacement(queen, placementValue, episodeIndex, idx === 0);
+      }
+
+      let lsQueens = announcementOrder.slice();
+      let ls = new LipsyncSong(lsQueens, songschosen, CurrentSeason.episodes.length, 'top2win', "NONE");
       CurrentSeason.lipsyncs.push(ls);
       break;
   }
@@ -12396,6 +12471,127 @@ function GenerateChallenge()
     {
       Main.createButton("Proceed", "GenerateChallenge()");
     }
+}
+
+function announceDoublePremierePlacement(queen, placement, episodeIndex, isPrimary)
+{
+  if(!queen)
+  {
+    return;
+  }
+
+  let normalized = placement == null ? "" : placement.toString().trim();
+  if(normalized === "")
+  {
+    normalized = isPrimary ? "WIN" : "TOP2";
+  }
+  else
+  {
+    normalized = normalized.toUpperCase();
+    if(normalized === "NONE")
+    {
+      normalized = isPrimary ? "WIN" : "TOP2";
+    }
+    else
+    {
+      normalized = normalizePlacementValue(normalized);
+      if(normalized === "")
+      {
+        normalized = isPrimary ? "WIN" : "TOP2";
+      }
+    }
+  }
+
+  switch(normalized)
+  {
+    case "WIN":
+      Main.createImage(queen.image, "#1741ff");
+      Main.createText(queen.GetName()+", CONDRAGULATIONS! You're the winner of this week's challenge.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "WIN");
+      break;
+    case "DOUBLEWIN":
+      Main.createImage(queen.image, "#1c2d8c");
+      Main.createText(queen.GetName()+", CONDRAGULATIONS! You're also walking away with a win this week.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "DOUBLEWIN");
+      break;
+    case "TOP2":
+      Main.createImage(queen.image, "lightgreen");
+      Main.createText(queen.GetName()+", you did an amazing job. You are also safe.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "TOP2");
+      break;
+    case "HIGH":
+      Main.createImage(queen.image, "#17d4ff");
+      Main.createText(queen.GetName()+", great job this week. You are safe.","");
+      setDoublePremierePlacement(queen, episodeIndex, "HIGH");
+      break;
+    case "SAFE":
+      Main.createImage(queen.image, "#8f8f8f");
+      Main.createText(queen.GetName()+", you are safe.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "SAFE");
+      break;
+    case "LOW":
+      Main.createImage(queen.image, "#f0ad4e");
+      Main.createText(queen.GetName()+", you are in the low placements this week.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "LOW");
+      break;
+    case "BOTTOM":
+      Main.createImage(queen.image, "#ff8a8a");
+      Main.createText(queen.GetName()+", I'm sorry my dear, but you're up for elimination.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "BOTTOM");
+      break;
+    default:
+      Main.createImage(queen.image, "lightgreen");
+      Main.createText(queen.GetName()+", you are safe.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, normalized);
+      break;
+  }
+
+  setRiggingOutcomePlacement(episodeIndex, queen, normalized);
+}
+
+function setDoublePremierePlacement(queen, episodeIndex, placement)
+{
+  if(!queen)
+  {
+    return;
+  }
+
+  if(!queen.trackrecord)
+  {
+    queen.trackrecord = [];
+  }
+
+  let value = placement == null ? "" : placement.toString().trim().toUpperCase();
+  if(value === "NONE")
+  {
+    value = "";
+  }
+
+  let normalizedValue = value === "" ? "" : normalizePlacementValue(value);
+  let current = queen.trackrecord[episodeIndex];
+  if(current == null)
+  {
+    current = "";
+  }
+
+  let normalizedCurrent = current === "" ? "" : normalizePlacementValue(current);
+  if(normalizedCurrent === normalizedValue)
+  {
+    queen.trackrecord[episodeIndex] = normalizedValue;
+    return;
+  }
+
+  if(current !== "" && current != null)
+  {
+    applyPlacementDelta(queen, current, -1);
+  }
+
+  queen.trackrecord[episodeIndex] = normalizedValue;
+
+  if(normalizedValue !== "")
+  {
+    applyPlacementDelta(queen, normalizedValue, 1);
+  }
 }
 
 
@@ -13979,6 +14175,132 @@ function invokeRiggingReturnCallback()
   }
 }
 
+function getRiggingOutcome(episodeIndex)
+{
+  if(episodeIndex == null || episodeIndex < 0)
+  {
+    return null;
+  }
+
+  if(Object.prototype.hasOwnProperty.call(riggingEpisodeOutcomes, episodeIndex))
+  {
+    return riggingEpisodeOutcomes[episodeIndex];
+  }
+
+  return null;
+}
+
+function ensureRiggingOutcome(episodeIndex)
+{
+  let existing = getRiggingOutcome(episodeIndex);
+  if(existing)
+  {
+    return existing;
+  }
+
+  let outcome = null;
+  if(CurrentSeason && CurrentSeason.premiereformat === "DOUBLE")
+  {
+    outcome = generateDoublePremiereOutcome(episodeIndex);
+  }
+
+  if(outcome)
+  {
+    riggingEpisodeOutcomes[episodeIndex] = outcome;
+  }
+
+  return outcome;
+}
+
+function setRiggingOutcomePlacement(episodeIndex, queen, placement)
+{
+  if(!queen)
+  {
+    return;
+  }
+
+  let outcome = ensureRiggingOutcome(episodeIndex);
+  if(outcome && outcome.placements)
+  {
+    let value = placement == null ? "" : placement;
+    outcome.placements.set(queen, value);
+  }
+}
+
+function getRiggingOutcomePlacement(episodeIndex, queen)
+{
+  let outcome = getRiggingOutcome(episodeIndex);
+  if(outcome && outcome.placements && outcome.placements.has(queen))
+  {
+    return outcome.placements.get(queen);
+  }
+
+  return "";
+}
+
+function calculateRiggingLipsyncScore(queen)
+{
+  if(!queen)
+  {
+    return {score: 0, originalScore: 0};
+  }
+
+  let score = queen.GetScore(0, queen.lipsync, 0);
+  if(queen.animal != "")
+  {
+    score += queen.animal.lipsync;
+  }
+
+  let originalScore = score;
+  score += queen.favoritism;
+
+  return {score: score, originalScore: originalScore};
+}
+
+function generateDoublePremiereOutcome(episodeIndex)
+{
+  if(!CurrentSeason || CurrentSeason.premiereformat !== "DOUBLE")
+  {
+    return null;
+  }
+
+  if(episodeIndex == null || episodeIndex < 0 || episodeIndex >= CurrentSeason.episodes.length)
+  {
+    return null;
+  }
+
+  let lipSyncers = TopsQueens.slice(0, 2);
+  if(lipSyncers.length < 2)
+  {
+    return null;
+  }
+
+  let results = lipSyncers.map(queen => {
+    let scores = calculateRiggingLipsyncScore(queen);
+    return {queen: queen, score: scores.score, originalScore: scores.originalScore};
+  });
+
+  results.sort((a, b) => b.score - a.score);
+
+  let outcome = {
+    type: "DOUBLE_PREMIERE",
+    lipSyncResults: results,
+    placements: new Map()
+  };
+
+  if(results[0] && results[0].queen)
+  {
+    outcome.placements.set(results[0].queen, "WIN");
+  }
+
+  if(results[1] && results[1].queen)
+  {
+    outcome.placements.set(results[1].queen, "TOP2");
+  }
+
+  return outcome;
+}
+
 function prepareRiggingForEpisode(episodeIndex)
 {
   if(episodeIndex == null || episodeIndex < 0)
@@ -14025,6 +14347,8 @@ function prepareRiggingForEpisode(episodeIndex)
       addQueen(eliminatedQueen);
     }
   }
+
+  ensureRiggingOutcome(episodeIndex);
 
   return riggingQueens.length > 0;
 }
@@ -14144,6 +14468,14 @@ function Rigging()
     }
 
     let currentPlacement = queen.trackrecord[riggingEpisodeIndex] || "";
+    if(currentPlacement === "")
+    {
+      let predictedPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen);
+      if(predictedPlacement && predictedPlacement !== "")
+      {
+        currentPlacement = predictedPlacement;
+      }
+    }
     let currentWrapper = document.createElement("div");
     currentWrapper.setAttribute("style","display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%;");
 
@@ -14263,6 +14595,7 @@ function ApplyRigging()
     applyPlacementDelta(queen, newPlacement, 1);
 
     queen.trackrecord[targetEpisodeIndex] = newPlacement;
+    setRiggingOutcomePlacement(targetEpisodeIndex, queen, newPlacement);
   });
 
   riggingQueens = [];
