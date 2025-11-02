@@ -156,7 +156,7 @@ class LipsyncSong{
 }
 
 class Season {
-  constructor(Name, Cast, Host, Finale, LC, Lipsync, Premiere, Country)
+  constructor(Name, Cast, Host, Finale, LC, Lipsync, Premiere, Country, PremiereChallenge = "TALENTSHOW")
   {
     this.seasonname = Name;
     this.fullCast = Cast;
@@ -172,7 +172,7 @@ class Season {
     if(this.currentCast.length==0)
       for(let i =0; i < this.fullCast.length; i++)
       {
-        
+
         this.currentCast.push(this.fullCast[i]);
       }
 
@@ -187,6 +187,7 @@ class Season {
     this.finaleformat = Finale;
     this.lipsyncformat = Lipsync;
     this.premiereformat = Premiere;
+    this.premierechallenge = PremiereChallenge;
     this.country = Country;
 
     this.storylines = [];
@@ -210,6 +211,7 @@ class Season {
 
     this.immunity = false;
     this.animals = false;
+    this.rigging = false;
   }
 
   checkTwists(Twists){
@@ -217,6 +219,8 @@ class Season {
       this.immunity = true;
     if(Twists.indexOf("Animals")!= -1)
       this.animals = true;
+    if(Twists.indexOf("Rigging")!= -1)
+      this.rigging = true;
   }
 
   getFullCast()
@@ -1803,6 +1807,21 @@ class Screen {
     lbl.innerHTML = " Enable Animals"
     lbl.setAttribute("style","font-weight: bold; font-size: 20px;");
     this.MainScreen.append(immunity);
+    this.MainScreen.append(lbl);
+
+    for (let index = 0; index < 2; index++) {
+      let br = document.createElement("br");
+      this.MainScreen.append(br);
+    }
+
+    let rigging = document.createElement("input")
+    rigging.setAttribute("type","checkbox");
+    rigging.setAttribute("id","rigging");
+    lbl = document.createElement("label");
+    lbl.setAttribute("for","rigging");
+    lbl.innerHTML = " Enable Rigging (Override Placements)"
+    lbl.setAttribute("style","font-weight: bold; font-size: 20px;");
+    this.MainScreen.append(rigging);
     this.MainScreen.append(lbl);
   }
 
@@ -12740,20 +12759,30 @@ function ChallengeAnnouncement(){
     Announcement.createRupaulAnnouncement("Now, Let The Olympics Begin!");
     Announcement.createButton("Proceed","LaunchMiniChallenge()");
   }
-  else if(CurrentSeason.episodes.length<=1 && CurrentSeason.premiereformat == "S6")
+  else if(CurrentSeason.episodes.length<=1 && (CurrentSeason.premiereformat == "S6" || CurrentSeason.premiereformat == "S12"))
   {
-    CurrentChallenge = new DesignChallenge();
-    CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Design");
+    let episodeNumber = CurrentSeason.episodes.length + 1;
+
+    if(CurrentSeason.premierechallenge == "TALENTSHOW")
+    {
+      CurrentChallenge = new TalentShow();
+      CurrentEpisode = new Episode("Premiere (EP " + episodeNumber + ")", "Talent Show");
+    }
+    else
+    {
+      CurrentChallenge = new Rumix();
+      CurrentEpisode = new Episode("Premiere (EP " + episodeNumber + ")", "Rumix");
+    }
+
     CurrentSeason.episodes.push(CurrentEpisode);
-    CurrentSeason.designchallenges++;
 
     Announcement = new Screen();
     Announcement.clean();
-    
+
     Announcement.createRupaulAnnouncement("Welcome Queens!");
     Announcement.createRupaulAnnouncement("First Of All Let Me Give You All A Warm Welcome.");
     Announcement.createRupaulAnnouncement("You All Made It Here. You Are All The Very Best.");
-    Announcement.createRupaulAnnouncement("Now, Let The Olympics Begin!");
+    Announcement.createRupaulAnnouncement("Now, Let The Competition Begin!");
     Announcement.createButton("Proceed","LaunchMiniChallenge()");
   }
   else
@@ -13506,6 +13535,7 @@ function CreateEntrances()
     let twists = [];
     let getcheckimmu = document.getElementById("immu");
     let getcheckanim = document.getElementById("animal");
+    let getcheckrig = document.getElementById("rigging");
 
     if(getcheckimmu != undefined && getcheckimmu.checked == true)
     {
@@ -13515,6 +13545,11 @@ function CreateEntrances()
     if(getcheckanim != undefined && getcheckanim.checked == true)
     {
       twists.push("Animals");
+    }
+
+    if(getcheckrig != undefined && getcheckrig.checked == true)
+    {
+      twists.push("Rigging");
     }
 
     CurrentSeason.checkTwists(twists);
@@ -13807,6 +13842,19 @@ function CheckAS7(){
   }
 }
 
+function CheckDoublePremiere(){
+  let select = document.getElementById("premiere").value;
+  let challengeSelect = document.getElementById("premierechallenge");
+  if(select=="S6" || select=="S12")
+  {
+    challengeSelect.style.display = "inline-block";
+  }
+  else
+  {
+    challengeSelect.style.display = "none";
+  }
+}
+
 function AddToCustomQueen(){
   let name = document.getElementById("name").value;
   let acting = document.getElementById("acting").value;
@@ -13861,6 +13909,7 @@ function LaunchCustomCast(){
   let Finale = document.getElementById("format").value;
   let LC = document.getElementById("lc").value;
   let Premiere = document.getElementById("premiere").value;
+  let PremiereChallenge = document.getElementById("premierechallenge").value;
   let Name = document.getElementById("sname").value;
   let LS = document.getElementById("lipsync").value;
   let Country = document.getElementById("country").value;
@@ -13930,7 +13979,7 @@ function LaunchCustomCast(){
 
   if(isgood==true)
   {
-    CurrentSeason = new Season(Name, CustomCast, host, Finale, LC, LS, Premiere, Country);
+    CurrentSeason = new Season(Name, CustomCast, host, Finale, LC, LS, Premiere, Country, PremiereChallenge);
     let screen = new Screen();
     screen.createBigText("Drag Up My Season!");
     screen.clean();
@@ -15164,3 +15213,297 @@ function AddRandomCast(){
   UpdateCustomCast();
 }
 //#endregion
+
+// Rigging System - Override Challenge Placements
+let riggingCallback = null;
+
+function ShowRiggingUI(callback) {
+  riggingCallback = callback;
+
+  Main = new Screen();
+  Main.createBigText("Rigging Mode: Override Placements");
+
+  switch(localStorage.getItem("theme"))
+  {
+    case "Simple.css":
+      document.body.style.backgroundColor = '#1a1a1a';
+      break;
+    default:
+      document.body.style.backgroundImage = 'url("Images/Backgrounds/MS.png")';
+      break;
+  }
+
+  Main.clean();
+
+  Main.createText("Current challenge placements are shown below. Select queens to swap their placements.", "Bold");
+  Main.createLine();
+
+  // Show Top Queens
+  if(TopsQueens.length > 0) {
+    Main.createText("TOP QUEENS", "Bold");
+    Main.createLine();
+    for(let i = 0; i < TopsQueens.length; i++) {
+      let container = document.createElement("div");
+      container.setAttribute("style", "margin: 10px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: inline-block; min-width: 300px;");
+
+      let queenImg = document.createElement("img");
+      queenImg.src = TopsQueens[i].image;
+      queenImg.setAttribute("style", "width: 80px; height: 80px; border-radius: 50%; border: 3px solid white; vertical-align: middle;");
+
+      let queenName = document.createElement("span");
+      queenName.innerHTML = TopsQueens[i].GetName();
+      queenName.setAttribute("style", "font-size: 18px; font-weight: bold; color: white; margin-left: 15px; vertical-align: middle;");
+
+      let selectBox = document.createElement("select");
+      selectBox.setAttribute("id", "rig_top_" + i);
+      selectBox.setAttribute("style", "margin-left: 15px; padding: 5px; font-size: 14px; border-radius: 5px; vertical-align: middle;");
+
+      let optTop = document.createElement("option");
+      optTop.value = "TOP";
+      optTop.text = "Keep as TOP";
+      optTop.selected = true;
+      selectBox.add(optTop);
+
+      let optSafe = document.createElement("option");
+      optSafe.value = "SAFE";
+      optSafe.text = "Move to SAFE";
+      selectBox.add(optSafe);
+
+      let optLow = document.createElement("option");
+      optLow.value = "LOW";
+      optLow.text = "Move to LOW";
+      selectBox.add(optLow);
+
+      let optBottom = document.createElement("option");
+      optBottom.value = "BOTTOM";
+      optBottom.text = "Move to BOTTOM";
+      selectBox.add(optBottom);
+
+      container.append(queenImg);
+      container.append(queenName);
+      container.append(selectBox);
+      Main.MainScreen.append(container);
+    }
+    Main.createLine();
+  }
+
+  // Show Safe Queens
+  let SafeQueens = [];
+  for(let i = 0; i < CurrentSeason.currentCast.length; i++) {
+    if(TopsQueens.indexOf(CurrentSeason.currentCast[i]) === -1 &&
+       BottomQueens.indexOf(CurrentSeason.currentCast[i]) === -1) {
+      SafeQueens.push(CurrentSeason.currentCast[i]);
+    }
+  }
+
+  if(SafeQueens.length > 0) {
+    Main.createText("SAFE QUEENS", "Bold");
+    Main.createLine();
+    for(let i = 0; i < SafeQueens.length; i++) {
+      let container = document.createElement("div");
+      container.setAttribute("style", "margin: 10px; padding: 15px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 10px; display: inline-block; min-width: 300px;");
+
+      let queenImg = document.createElement("img");
+      queenImg.src = SafeQueens[i].image;
+      queenImg.setAttribute("style", "width: 80px; height: 80px; border-radius: 50%; border: 3px solid white; vertical-align: middle;");
+
+      let queenName = document.createElement("span");
+      queenName.innerHTML = SafeQueens[i].GetName();
+      queenName.setAttribute("style", "font-size: 18px; font-weight: bold; color: white; margin-left: 15px; vertical-align: middle;");
+
+      let selectBox = document.createElement("select");
+      selectBox.setAttribute("id", "rig_safe_" + i);
+      selectBox.setAttribute("style", "margin-left: 15px; padding: 5px; font-size: 14px; border-radius: 5px; vertical-align: middle;");
+
+      let optTop = document.createElement("option");
+      optTop.value = "TOP";
+      optTop.text = "Move to TOP";
+      selectBox.add(optTop);
+
+      let optSafe = document.createElement("option");
+      optSafe.value = "SAFE";
+      optSafe.text = "Keep as SAFE";
+      optSafe.selected = true;
+      selectBox.add(optSafe);
+
+      let optLow = document.createElement("option");
+      optLow.value = "LOW";
+      optLow.text = "Move to LOW";
+      selectBox.add(optLow);
+
+      let optBottom = document.createElement("option");
+      optBottom.value = "BOTTOM";
+      optBottom.text = "Move to BOTTOM";
+      selectBox.add(optBottom);
+
+      container.append(queenImg);
+      container.append(queenName);
+      container.append(selectBox);
+      Main.MainScreen.append(container);
+    }
+    Main.createLine();
+  }
+
+  // Show Bottom Queens
+  if(BottomQueens.length > 0) {
+    Main.createText("BOTTOM QUEENS", "Bold");
+    Main.createLine();
+    for(let i = 0; i < BottomQueens.length; i++) {
+      let container = document.createElement("div");
+      container.setAttribute("style", "margin: 10px; padding: 15px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 10px; display: inline-block; min-width: 300px;");
+
+      let queenImg = document.createElement("img");
+      queenImg.src = BottomQueens[i].image;
+      queenImg.setAttribute("style", "width: 80px; height: 80px; border-radius: 50%; border: 3px solid white; vertical-align: middle;");
+
+      let queenName = document.createElement("span");
+      queenName.innerHTML = BottomQueens[i].GetName();
+      queenName.setAttribute("style", "font-size: 18px; font-weight: bold; color: white; margin-left: 15px; vertical-align: middle;");
+
+      let selectBox = document.createElement("select");
+      selectBox.setAttribute("id", "rig_bottom_" + i);
+      selectBox.setAttribute("style", "margin-left: 15px; padding: 5px; font-size: 14px; border-radius: 5px; vertical-align: middle;");
+
+      let optTop = document.createElement("option");
+      optTop.value = "TOP";
+      optTop.text = "Move to TOP";
+      selectBox.add(optTop);
+
+      let optSafe = document.createElement("option");
+      optSafe.value = "SAFE";
+      optSafe.text = "Move to SAFE";
+      selectBox.add(optSafe);
+
+      let optLow = document.createElement("option");
+      optLow.value = "LOW";
+      optLow.text = "Move to LOW";
+      selectBox.add(optLow);
+
+      let optBottom = document.createElement("option");
+      optBottom.value = "BOTTOM";
+      optBottom.text = "Keep as BOTTOM";
+      optBottom.selected = true;
+      selectBox.add(optBottom);
+
+      container.append(queenImg);
+      container.append(queenName);
+      container.append(selectBox);
+      Main.MainScreen.append(container);
+    }
+    Main.createLine();
+  }
+
+  Main.createLine();
+  Main.createButton("Apply Changes & Continue", "ApplyRigging()");
+  Main.createButton("Skip Rigging (Keep Original)", riggingCallback);
+}
+
+function ApplyRigging() {
+  let newTops = [];
+  let newSafes = [];
+  let newBottoms = [];
+
+  // Process Top Queens
+  for(let i = 0; i < TopsQueens.length; i++) {
+    let select = document.getElementById("rig_top_" + i);
+    if(select) {
+      let value = select.value;
+      switch(value) {
+        case "TOP":
+          newTops.push(TopsQueens[i]);
+          break;
+        case "SAFE":
+          newSafes.push(TopsQueens[i]);
+          break;
+        case "BOTTOM":
+          newBottoms.push(TopsQueens[i]);
+          break;
+      }
+    }
+  }
+
+  // Process Safe Queens
+  let SafeQueens = [];
+  for(let i = 0; i < CurrentSeason.currentCast.length; i++) {
+    if(TopsQueens.indexOf(CurrentSeason.currentCast[i]) === -1 &&
+       BottomQueens.indexOf(CurrentSeason.currentCast[i]) === -1) {
+      SafeQueens.push(CurrentSeason.currentCast[i]);
+    }
+  }
+
+  for(let i = 0; i < SafeQueens.length; i++) {
+    let select = document.getElementById("rig_safe_" + i);
+    if(select) {
+      let value = select.value;
+      switch(value) {
+        case "TOP":
+          newTops.push(SafeQueens[i]);
+          break;
+        case "SAFE":
+          newSafes.push(SafeQueens[i]);
+          break;
+        case "BOTTOM":
+          newBottoms.push(SafeQueens[i]);
+          break;
+      }
+    }
+  }
+
+  // Process Bottom Queens
+  for(let i = 0; i < BottomQueens.length; i++) {
+    let select = document.getElementById("rig_bottom_" + i);
+    if(select) {
+      let value = select.value;
+      switch(value) {
+        case "TOP":
+          newTops.push(BottomQueens[i]);
+          break;
+        case "SAFE":
+          newSafes.push(BottomQueens[i]);
+          break;
+        case "BOTTOM":
+          newBottoms.push(BottomQueens[i]);
+          break;
+      }
+    }
+  }
+
+  // Update global arrays
+  TopsQueens = newTops;
+  BottomQueens = newBottoms;
+
+  // Redistribute challenge performance arrays
+  SlayedChallenge = [];
+  GreatChallenge = [];
+  GoodChallenge = [];
+  BadChallenge = [];
+  FloppedChallenge = [];
+
+  for(let i = 0; i < newTops.length; i++) {
+    SlayedChallenge.push(newTops[i]);
+  }
+
+  for(let i = 0; i < newSafes.length; i++) {
+    GoodChallenge.push(newSafes[i]);
+  }
+
+  for(let i = 0; i < newBottoms.length; i++) {
+    FloppedChallenge.push(newBottoms[i]);
+  }
+
+  // Continue with the callback
+  if(riggingCallback) {
+    eval(riggingCallback);
+  }
+}
+
+// RIGGING INTEGRATION NOTES:
+// To use rigging in a specific challenge flow:
+// 1. After TopsQueens and BottomQueens are populated
+// 2. Before showing results to the user
+// 3. Call: if(CurrentSeason.rigging) { ShowRiggingUI("YourNextFunctionName()"); return; }
+// 4. Replace "YourNextFunctionName()" with the next step in your challenge flow
+// Example integration points:
+// - After challenge performance is calculated
+// - Before runway results announcement
+// - Before lipsync begins

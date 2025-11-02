@@ -75,9 +75,16 @@
                 <option value="TOP3">Top 3 Into Top 2</option>
                 <option value="LSFTC">Top 4 (LSFTC)</option>
             </select>
-            <select id="premiere" style="width: 15%;">
+            <select id="premiere" style="width: 15%;" onchange="CheckDoublePremiere()">
                 <option value="0" selected disabled>-- Premiere Format --</option>
                 <option value="NORMAL">Normal</option>
+                <option value="S6">Double Premiere (Season 6 Style)</option>
+                <option value="S12">Double Premiere (Season 12 Style)</option>
+            </select>
+            <select id="premierechallenge" style="width: 15%; display: none;">
+                <option value="0" selected disabled>-- Premiere Challenge --</option>
+                <option value="TALENTSHOW">Talent Show</option>
+                <option value="RUMIX">Rumix</option>
             </select>
             <select id="lipsync" style="width: 15%;" onchange="CheckAS7()">
                 <option value="0" selected disabled>-- Lipsync Format --</option>
