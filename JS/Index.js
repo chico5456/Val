@@ -25,6 +25,8 @@ let organized = 0;
 let firstpex = false;
 let secondpex = false;
 
+let secondGroupEntrancesShown = false;
+
 let CustomCast = [];
 
 let customqueens = [];
@@ -12368,6 +12370,9 @@ function GetPromoTable()
       {
         if(CurrentSeason.episodes.length==2 && premreform == false)
         {
+          console.log("=== MERGING GROUPS FOR EPISODE 3 ===");
+          console.log("Before merge - currentCast:", CurrentSeason.currentCast.map(q => q.name));
+
           CurrentSeason.currentCast = [];
           for (let index = 0; index < firstprem.length; index++) {
             CurrentSeason.currentCast.push(firstprem[index]);
@@ -12378,6 +12383,9 @@ function GetPromoTable()
           }
           premreform = true;
           entrancepos = 0; // Reset entrance position for merged cast
+
+          console.log("After merge - currentCast:", CurrentSeason.currentCast.map(q => q.name));
+          console.log("=== END MERGING GROUPS ===");
         }
       }
       if(shouldactivateepisode == true)
@@ -13127,6 +13135,12 @@ function RankQueens(){
     // Special handling for Double Premiere episodes 1 and 2
     if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length <= 2)
     {
+      console.log("=== DOUBLE PREMIERE RANKING ===");
+      console.log("Episode:", CurrentSeason.episodes.length);
+      console.log("Current Cast:", CurrentSeason.currentCast.map(q => q.name));
+      console.log("First Prem Group:", firstprem.map(q => q.name));
+      console.log("Second Prem Group:", secondprem.map(q => q.name));
+
       // For double premiere: 2 TOP2, 2 HIGH, rest SAFE, no elimination
       // Add top 4 queens - 2 will be TOP2 (lipsync for win), 2 will be HIGH
       for(let i = 0; i<4; i++)
@@ -13134,10 +13148,14 @@ function RankQueens(){
         Tops.push(CurrentSeason.currentCast[i]);
       }
 
+      console.log("Top 4 Queens:", Tops.map(q => q.name));
+
       // Mark the top 2 as TOP2 queens for lipsync for the win
       TopsQueens = [];
       TopsQueens.push(CurrentSeason.currentCast[0]);
       TopsQueens.push(CurrentSeason.currentCast[1]);
+
+      console.log("TOP2 (Lipsync for WIN):", TopsQueens.map(q => q.name));
 
       // Everyone else is SAFE
       for(let i = 4; i<CurrentSeason.currentCast.length; i++)
@@ -13148,10 +13166,14 @@ function RankQueens(){
         CurrentSeason.currentCast[i].safes++;
       }
 
+      console.log("SAFE Queens:", Safes.map(q => q.name));
+
       // Add all queens to critiqued (for the judging panel)
       for (let index = 0; index < CurrentSeason.currentCast.length; index++) {
         Critiqued.push(CurrentSeason.currentCast[index]);
       }
+
+      console.log("=== END DOUBLE PREMIERE RANKING ===");
       return; // Skip normal ranking logic
     }
 
@@ -13477,13 +13499,21 @@ function TrackRecords()
   MainScreen.createLine();
   MainScreen.createBR();
 
-  if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat!="NORMAL")
+  // For DOUBLE premiere, show second group entrances after episode 1 (but not after episode 2)
+  if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat=="DOUBLE" && !secondGroupEntrancesShown)
   {
+    console.log("TrackRecords: Adding button to CreateEntrances() for DOUBLE premiere episode 2");
     MainScreen.createButton("Proceed","CreateEntrances()");
   }
-
+  // For other split premieres (like S6), check if they need entrance phase
+  else if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat!="NORMAL" && CurrentSeason.premiereformat!="DOUBLE" && !secondGroupEntrancesShown)
+  {
+    console.log("TrackRecords: Adding button to CreateEntrances() for non-DOUBLE premiere episode 2");
+    MainScreen.createButton("Proceed","CreateEntrances()");
+  }
   else if(done==false)
   {
+    console.log("TrackRecords: Adding button to SelectChallenge()");
     MainScreen.createButton("Proceed","SelectChallenge()");
   }
 
@@ -13517,13 +13547,21 @@ function Songs()
   MainScreen.createLine();
   MainScreen.createBR();
 
-  if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat!="NORMAL")
+  // For DOUBLE premiere, show second group entrances after episode 1 (but not after episode 2)
+  if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat=="DOUBLE" && !secondGroupEntrancesShown)
   {
+    console.log("TrackRecords: Adding button to CreateEntrances() for DOUBLE premiere episode 2");
     MainScreen.createButton("Proceed","CreateEntrances()");
   }
-
+  // For other split premieres (like S6), check if they need entrance phase
+  else if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat!="NORMAL" && CurrentSeason.premiereformat!="DOUBLE" && !secondGroupEntrancesShown)
+  {
+    console.log("TrackRecords: Adding button to CreateEntrances() for non-DOUBLE premiere episode 2");
+    MainScreen.createButton("Proceed","CreateEntrances()");
+  }
   else if(done==false)
   {
+    console.log("TrackRecords: Adding button to SelectChallenge()");
     MainScreen.createButton("Proceed","SelectChallenge()");
   }
 
@@ -13557,13 +13595,21 @@ function SStorylines()
   MainScreen.createLine();
   MainScreen.createBR();
 
-  if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat!="NORMAL")
+  // For DOUBLE premiere, show second group entrances after episode 1 (but not after episode 2)
+  if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat=="DOUBLE" && !secondGroupEntrancesShown)
   {
+    console.log("TrackRecords: Adding button to CreateEntrances() for DOUBLE premiere episode 2");
     MainScreen.createButton("Proceed","CreateEntrances()");
   }
-
+  // For other split premieres (like S6), check if they need entrance phase
+  else if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat!="NORMAL" && CurrentSeason.premiereformat!="DOUBLE" && !secondGroupEntrancesShown)
+  {
+    console.log("TrackRecords: Adding button to CreateEntrances() for non-DOUBLE premiere episode 2");
+    MainScreen.createButton("Proceed","CreateEntrances()");
+  }
   else if(done==false)
   {
+    console.log("TrackRecords: Adding button to SelectChallenge()");
     MainScreen.createButton("Proceed","SelectChallenge()");
   }
 
@@ -13768,6 +13814,7 @@ function CreateEntrances()
     
     if(CurrentSeason.premiereformat!="NORMAL" && groupmaking == false)
     {
+        console.log("=== CREATING PREMIERE GROUPS ===");
 
         for (let index = 0; index < CurrentSeason.fullCast.length; index++) {
           if(index%2 == 0)
@@ -13783,6 +13830,9 @@ function CreateEntrances()
         }
         groupmaking = true;
 
+        console.log("First Prem Group:", firstprem.map(q => q.name));
+        console.log("Second Prem Group:", secondprem.map(q => q.name));
+
         // For DOUBLE premiere, set currentCast to only first group for episode 1
         if(CurrentSeason.premiereformat == "DOUBLE")
         {
@@ -13790,7 +13840,9 @@ function CreateEntrances()
           for (let index = 0; index < firstprem.length; index++) {
             CurrentSeason.currentCast.push(firstprem[index]);
           }
+          console.log("Set currentCast to FIRST GROUP for Episode 1:", CurrentSeason.currentCast.map(q => q.name));
         }
+        console.log("=== END CREATING PREMIERE GROUPS ===");
     }
 
       if(CurrentSeason.premiereformat!="NORMAL")
@@ -13865,32 +13917,55 @@ function CreateEntrances()
 
     if(entrancepos == CurrentSeason.fullCast.length || (CurrentSeason.premiereformat!="NORMAL" && (entrancepos==firstprem.length || entrancepos==secondprem.length)))
     {
+      console.log("Episode 1 entrances complete, going to GetPromoTable()");
       Main.createButton("Proceed","GetPromoTable()");
       groupmaking = false;
     }
     else
     {
+      console.log("More entrances to show, continuing with CreateEntrances()");
       Main.createButton("Proceed","CreateEntrances()");
-      
+
     }
 
     Main.createButton("Skip","GetPromoTable()");
   }
   else
   {
-    // For DOUBLE premiere episode 2, set currentCast to second group and reset entrancepos
-    if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1)
+    console.log("=== EPISODE 2+ ENTRANCE SETUP ===");
+    console.log("Episodes.length:", CurrentSeason.episodes.length);
+    console.log("Premiere format:", CurrentSeason.premiereformat);
+    console.log("Entrance pos before:", entrancepos);
+    console.log("First prem length:", firstprem.length);
+    console.log("Second prem length:", secondprem.length);
+    console.log("Current cast before adjustment:", CurrentSeason.currentCast.map(q => q.name));
+
+    // For DOUBLE premiere episode 2, ALWAYS set currentCast to second group at the start
+    if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1 && entrancepos >= firstprem.length)
     {
-      // Reset entrancepos when starting episode 2 (coming from episode 1 where entrancepos == firstprem.length)
+      console.log("==> RESETTING for Episode 2 - Setting currentCast to SECOND GROUP");
+      entrancepos = 0;
+      CurrentSeason.currentCast = [];
+      for (let index = 0; index < secondprem.length; index++) {
+        CurrentSeason.currentCast.push(secondprem[index]);
+      }
+      console.log("==> New currentCast (SECOND GROUP):", CurrentSeason.currentCast.map(q => q.name));
+      console.log("==> Entrance pos after reset:", entrancepos);
+    }
+
+    // For non-DOUBLE premieres (like S6), handle their entrance logic
+    if(CurrentSeason.premiereformat != "DOUBLE" && CurrentSeason.premiereformat != "NORMAL" && CurrentSeason.episodes.length == 1)
+    {
+      console.log("==> Non-DOUBLE premiere format detected");
+      // Reset entrancepos for second group entrances
       if(entrancepos >= firstprem.length)
       {
+        console.log("==> Resetting entrance pos for second group (non-DOUBLE)");
         entrancepos = 0;
-        CurrentSeason.currentCast = [];
-        for (let index = 0; index < secondprem.length; index++) {
-          CurrentSeason.currentCast.push(secondprem[index]);
-        }
       }
     }
+
+    console.log("=== END EPISODE 2+ ENTRANCE SETUP ===");
 
     let Main = new Screen();
     Main.clean();
@@ -13927,14 +14002,16 @@ function CreateEntrances()
         }
     if(entrancepos==secondprem.length)
     {
-      
+      console.log("Episode 2 entrances complete, setting flag and going to GetPromoTable()");
+      secondGroupEntrancesShown = true;
       Main.createButton("Proceed","GetPromoTable()");
 
     }
     else
     {
+      console.log("More episode 2 entrances to show");
       Main.createButton("Proceed","CreateEntrances()");
-      
+
     }
 
     Main.createButton("Skip","GetPromoTable()");
