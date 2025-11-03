@@ -13019,15 +13019,15 @@ function GetPromoTable()
       }
     }
 
-    let done;
+    let storylineCompleted;
     for (let index = 0; index < CurrentSeason.storylines; index++) {
-      done = false;
+      storylineCompleted = false;
       for (let i = 0; i < CurrentSeason.storylines[index].queens; i++) {
         if(CurrentSeason.eliminatedCast.indexOf(CurrentSeason.storylines.queens[i]) != -1)
-          done = true;
+          storylineCompleted = true;
       }
-      console.log(done);
-      if(done=true && CurrentSeason.storylines[index].ended == "Not finished yet.")
+      console.log(storylineCompleted);
+      if(storylineCompleted=true && CurrentSeason.storylines[index].ended == "Not finished yet.")
       {
         CurrentSeason.storylines[index].ended = CurrentEpisode.episodes.length;
       }
