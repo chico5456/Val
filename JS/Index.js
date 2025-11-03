@@ -15336,6 +15336,7 @@ function Rigging()
 
       placements.forEach(placement => {
         let btn = document.createElement("button");
+        btn.setAttribute("type", "button");
         btn.innerHTML = placement.label;
         btn.setAttribute("data-placement-value", placement.value);
 
