@@ -1416,20 +1416,57 @@ class Screen {
   }
 
   createTrackRecords(){
+    console.log("=== CREATE TRACK RECORDS TABLE ===");
+    console.log("Episodes count:", CurrentSeason.episodes.length);
+
+    // Validate and fix track record lengths BEFORE rendering
+    console.log("\n🔍 Validating track record lengths before rendering:");
+    for(let q = 0; q < CurrentSeason.currentCast.length; q++)
+    {
+      let queen = CurrentSeason.currentCast[q];
+      if(queen.trackrecord)
+      {
+        console.log(`   ${queen.name}: track record length ${queen.trackrecord.length}, episodes ${CurrentSeason.episodes.length}`);
+        if(queen.trackrecord.length > CurrentSeason.episodes.length)
+        {
+          console.error(`   ❌ ERROR: ${queen.name} has ${queen.trackrecord.length} entries but only ${CurrentSeason.episodes.length} episodes!`);
+          console.error(`   This would create ${queen.trackrecord.length - CurrentSeason.episodes.length} duplicate column(s)!`);
+          console.error(`   TRIMMING to correct length...`);
+          queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+          console.log(`   ✅ Fixed: new length = ${queen.trackrecord.length}`);
+        }
+      }
+    }
+    for(let q = 0; q < CurrentSeason.eliminatedCast.length; q++)
+    {
+      let queen = CurrentSeason.eliminatedCast[q];
+      if(queen.trackrecord)
+      {
+        console.log(`   ${queen.name}: track record length ${queen.trackrecord.length}, episodes ${CurrentSeason.episodes.length}`);
+        if(queen.trackrecord.length > CurrentSeason.episodes.length)
+        {
+          console.error(`   ❌ ERROR: ${queen.name} has ${queen.trackrecord.length} entries but only ${CurrentSeason.episodes.length} episodes!`);
+          console.error(`   TRIMMING to correct length...`);
+          queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+          console.log(`   ✅ Fixed: new length = ${queen.trackrecord.length}`);
+        }
+      }
+    }
+
     let putincenter = document.createElement("center");
     let table = document.createElement("table");
     table.setAttribute("id","TR");
     let thead = document.createElement("thead");
 
     table.setAttribute("class","tr");
-  
+
     let tbody = document.createElement("tbody");
-  
+
     let treps = document.createElement("tr");
-  
+
     let thq = document.createElement("th");
     thq.innerHTML = "Queens";
-    
+
     thq.setAttribute("class","tr");
     thq.setAttribute("style","width: 100px;")
 
@@ -1437,12 +1474,13 @@ class Screen {
 
     let photos = document.createElement("th");
     photos.innerHTML = "Photos";
-    
+
     photos.setAttribute("class","tr");
     photos.setAttribute("style","width: 75px;")
 
     treps.append(photos);
-  
+
+    console.log(`\n📊 Creating ${CurrentSeason.episodes.length} episode header columns`);
     for(let i = 0; i < CurrentSeason.episodes.length; i++)
     {
       let thep = document.createElement("th");
@@ -1459,16 +1497,20 @@ class Screen {
       treps.append(thep);
     }
 
+    console.log("\n📝 Rendering current cast rows:");
     for(let q = 0; q < CurrentSeason.currentCast.length; q++)
     {
+      let queen = CurrentSeason.currentCast[q];
+      console.log(`   ${queen.name}: rendering ${queen.trackrecord.length} cells`);
+
       let track = document.createElement("tr");
 
       let qname = document.createElement("td");
 
-      qname.innerHTML = CurrentSeason.currentCast[q].GetName();
+      qname.innerHTML = queen.GetName();
 
       if(CurrentSeason.animals == true){
-        qname.innerHTML += "<br><small>("+CurrentSeason.currentCast[q].animal.name+")</small>";
+        qname.innerHTML += "<br><small>("+queen.animal.name+")</small>";
       }
 
       qname.setAttribute("class","trq");
@@ -1479,15 +1521,17 @@ class Screen {
 
       let td = document.createElement("td");
 
-      td.setAttribute("style", "background: url("+ CurrentSeason.currentCast[q].image +"); background-size: 102px 102px; background-position: center;");
+      td.setAttribute("style", "background: url("+ queen.image +"); background-size: 102px 102px; background-position: center;");
 
       track.append(td);
 
-      for(let t = 0; t < CurrentSeason.currentCast[q].trackrecord.length; t++)
+      // CRITICAL: Only render cells up to CurrentSeason.episodes.length
+      let maxCells = Math.min(queen.trackrecord.length, CurrentSeason.episodes.length);
+      for(let t = 0; t < maxCells; t++)
       {
         let trtr = document.createElement("td");
 
-        let placementValue = CurrentSeason.currentCast[q].trackrecord[t];
+        let placementValue = queen.trackrecord[t];
         if(placementValue == null)
         {
           placementValue = "";
@@ -1497,12 +1541,12 @@ class Screen {
 
         if(trimmedPlacement !== "")
         {
-          if(CurrentSeason.currentCast[q].miniwon.indexOf(t+1)!=-1)
+          if(queen.miniwon.indexOf(t+1)!=-1)
           {
             trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
           }
 
-          if(CurrentSeason.currentCast[q].immune.indexOf(t+1)!=-1)
+          if(queen.immune.indexOf(t+1)!=-1)
           {
             trtr.style.background = "magenta";
             trtr.style.color = "#000000";
@@ -1515,17 +1559,20 @@ class Screen {
 
       tbody.append(track);
     }
+    console.log("=== TRACK RECORDS TABLE COMPLETE ===\n");
 
+    console.log("\n📝 Rendering eliminated cast rows:");
     for(let q = 0; q < CurrentSeason.eliminatedCast.length; q++)
     {
+      let queen = CurrentSeason.eliminatedCast[q];
       let track = document.createElement("tr");
 
       let qname = document.createElement("td");
 
-      qname.innerHTML = CurrentSeason.eliminatedCast[q].GetName();
+      qname.innerHTML = queen.GetName();
 
       if(CurrentSeason.animals == true){
-        qname.innerHTML += "<br><small>("+CurrentSeason.eliminatedCast[q].animal.name+")</small>";
+        qname.innerHTML += "<br><small>("+queen.animal.name+")</small>";
       }
 
       qname.setAttribute("class","trq");
@@ -1536,20 +1583,32 @@ class Screen {
 
       let td = document.createElement("td");
 
-      td.setAttribute("style", "background: url("+ CurrentSeason.eliminatedCast[q].image +"); background-size: 102px 102px; background-position: center;");
+      td.setAttribute("style", "background: url("+ queen.image +"); background-size: 102px 102px; background-position: center;");
 
       track.append(td);
 
-      while(CurrentSeason.eliminatedCast[q].trackrecord.length<CurrentSeason.episodes.length)
+      // Pad track record with empty strings if too short
+      while(queen.trackrecord.length < CurrentSeason.episodes.length)
       {
-        CurrentSeason.eliminatedCast[q].trackrecord.push('');
+        queen.trackrecord.push('');
       }
 
-      for(let t = 0; t < CurrentSeason.eliminatedCast[q].trackrecord.length; t++)
+      // Trim track record if too long
+      if(queen.trackrecord.length > CurrentSeason.episodes.length)
+      {
+        console.error(`   ❌ ${queen.name} track record too long (${queen.trackrecord.length}), trimming to ${CurrentSeason.episodes.length}`);
+        queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+      }
+
+      console.log(`   ${queen.name}: rendering ${queen.trackrecord.length} cells`);
+
+      // CRITICAL: Only render cells up to CurrentSeason.episodes.length
+      let maxCells = Math.min(queen.trackrecord.length, CurrentSeason.episodes.length);
+      for(let t = 0; t < maxCells; t++)
       {
         let trtr = document.createElement("td");
 
-        let placementValue = CurrentSeason.eliminatedCast[q].trackrecord[t];
+        let placementValue = queen.trackrecord[t];
         if(placementValue == null)
         {
           placementValue = "";
@@ -1559,12 +1618,12 @@ class Screen {
 
         if(trimmedPlacement !== "")
         {
-          if(CurrentSeason.eliminatedCast[q].miniwon.indexOf(t+1)!=-1)
+          if(queen.miniwon.indexOf(t+1)!=-1)
           {
             trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
           }
 
-          if(CurrentSeason.eliminatedCast[q].immune.indexOf(t+1)!=-1)
+          if(queen.immune.indexOf(t+1)!=-1)
           {
             trtr.style.background = "magenta";
             trtr.style.color = "#000000";
@@ -15015,6 +15074,13 @@ function Rigging()
   console.log("Episodes count:", CurrentSeason.episodes.length);
   console.log("Rigging episode index:", riggingEpisodeIndex);
   console.log("Rigging active:", riggingActive);
+
+  // Prevent re-entry: if rigging is already active and UI is shown, don't re-render
+  if(riggingActive && riggingEpisodeIndex !== null && riggingQueens.length > 0)
+  {
+    console.log("⚠️ Rigging already active with UI displayed, preventing re-entry");
+    return;
+  }
 
   if(CurrentSeason.episodes.length === 0)
   {
