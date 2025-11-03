@@ -15111,6 +15111,15 @@ function prepareRiggingForEpisode(episodeIndex)
 
   ensureRiggingOutcome(episodeIndex);
 
+  // Reset all rigging selections for this episode
+  console.log("🔄 Resetting rigging selections for fresh start");
+  riggingQueens.forEach(queen => {
+    if(queen) {
+      delete queen.currentRiggedPlacement;
+      delete queen.riggingButtonsVisible;
+    }
+  });
+
   return riggingQueens.length > 0;
 }
 
@@ -15264,112 +15273,117 @@ function Rigging()
       card.appendChild(historyRow);
     }
 
-    let predictedPlacement = getRiggingPredictedPlacement(riggingEpisodeIndex, queen) || "";
-    let currentPlacement = predictedPlacement;
-    if(currentPlacement === "")
-    {
-      let trackValue = queen.trackrecord && queen.trackrecord.length > riggingEpisodeIndex ? queen.trackrecord[riggingEpisodeIndex] : "";
-      if(trackValue && trackValue !== "")
+    // Get the current placement - either from rigging outcome or track record
+    let currentPlacement = queen.currentRiggedPlacement || "";
+
+    // If no rigged placement yet, get from outcome or track record
+    if(!currentPlacement) {
+      let predictedPlacement = getRiggingPredictedPlacement(riggingEpisodeIndex, queen) || "";
+      currentPlacement = predictedPlacement;
+      if(currentPlacement === "")
       {
-        currentPlacement = trackValue;
+        let trackValue = queen.trackrecord && queen.trackrecord.length > riggingEpisodeIndex ? queen.trackrecord[riggingEpisodeIndex] : "";
+        if(trackValue && trackValue !== "")
+        {
+          currentPlacement = trackValue;
+        }
+        else
+        {
+          currentPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
+        }
       }
-      else
-      {
-        currentPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
+
+      // Normalize BOTTOM to BTM2 for display consistency
+      if(normalizePlacementValue(currentPlacement) === "BOTTOM") {
+        currentPlacement = "BTM2";
       }
+
+      // Store this as the initial placement
+      queen.currentRiggedPlacement = currentPlacement;
     }
+
+    // Create clickable placement badge
     let currentWrapper = document.createElement("div");
-    currentWrapper.setAttribute("style","display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%;");
+    currentWrapper.setAttribute("style","display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; margin-top: 8px;");
 
-    let placementLabel = document.createElement("p");
-    placementLabel.innerHTML = "Judges' call";
-    placementLabel.setAttribute("style","margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #d5d5d5;");
-    currentWrapper.appendChild(placementLabel);
+    let currentBadge = createPlacementBadgeElement(currentPlacement === "BTM2" ? "BOTTOM" : currentPlacement, "large");
+    currentBadge.setAttribute("style", currentBadge.getAttribute("style") + " min-width: 120px; text-align: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.3);");
 
-    let currentBadge = createPlacementBadgeElement(currentPlacement, "large");
-    currentBadge.setAttribute("style", currentBadge.getAttribute("style") + " min-width: 96px; text-align: center;");
+    // Make badge clickable to toggle buttons
+    currentBadge.addEventListener("click", () => {
+      queen.riggingButtonsVisible = !queen.riggingButtonsVisible;
+      Rigging(); // Re-render to show/hide buttons
+    });
+
     currentWrapper.appendChild(currentBadge);
 
     card.appendChild(currentWrapper);
 
-    let selectLabel = document.createElement("p");
-    selectLabel.innerHTML = "Override placement";
-    selectLabel.setAttribute("style","margin: 4px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #bdbdbd;");
-    card.appendChild(selectLabel);
+    // Only show buttons if this queen's buttons are visible
+    if(queen.riggingButtonsVisible) {
+      let buttonsGrid = document.createElement("div");
+      buttonsGrid.setAttribute("style","display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; margin-top: 12px; animation: fadeIn 0.2s;");
+      buttonsGrid.setAttribute("data-rigging-index", index);
 
-    // Create placement buttons grid instead of dropdown
-    let buttonsGrid = document.createElement("div");
-    buttonsGrid.setAttribute("style","display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; margin-top: 8px;");
-    buttonsGrid.setAttribute("data-rigging-index", index);
+      const placements = [
+        {value: 'WIN', label: 'WIN', bg: 'royalblue', color: 'white'},
+        {value: 'HIGH', label: 'HIGH', bg: 'lightblue', color: '#000000'},
+        {value: 'SAFE', label: 'SAFE', bg: '#F5EBF5', color: '#000000'},
+        {value: 'LOW', label: 'LOW', bg: 'lightpink', color: '#000000'},
+        {value: 'BTM2', label: 'BTM2', bg: 'tomato', color: 'white'},
+        {value: 'ELIMINATED', label: 'ELIM', bg: 'red', color: 'white'}
+      ];
 
-    const placements = [
-      {value: 'WIN', label: 'WIN', bg: 'royalblue', color: 'white'},
-      {value: 'HIGH', label: 'HIGH', bg: 'lightblue', color: '#000000'},
-      {value: 'SAFE', label: 'SAFE', bg: '#F5EBF5', color: '#000000'},
-      {value: 'LOW', label: 'LOW', bg: 'lightpink', color: '#000000'},
-      {value: 'BTM2', label: 'BTM2', bg: 'tomato', color: 'white'},
-      {value: 'ELIMINATED', label: 'ELIM', bg: 'red', color: 'white'}
-    ];
+      placements.forEach(placement => {
+        let btn = document.createElement("button");
+        btn.innerHTML = placement.label;
+        btn.setAttribute("data-placement-value", placement.value);
 
-    let riggedPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
-    let normalizedRigged = normalizePlacementValue(riggedPlacement);
-    if(normalizedRigged === "BOTTOM") normalizedRigged = "BTM2";
+        let isSelected = (placement.value === queen.currentRiggedPlacement ||
+                          (placement.value === "BTM2" && queen.currentRiggedPlacement === "BOTTOM"));
 
-    // Store current selection for this queen
-    if(!queen.currentRiggedPlacement) queen.currentRiggedPlacement = normalizedRigged || "";
+        let btnStyle = `
+          padding: 10px 6px;
+          border-radius: 8px;
+          border: 2px solid ${isSelected ? '#ffffff' : 'transparent'};
+          background: ${placement.bg};
+          color: ${placement.color};
+          font-size: 13px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          box-shadow: ${isSelected ? '0 0 0 3px rgba(255,255,255,0.3)' : '0 2px 4px rgba(0,0,0,0.2)'};
+        `;
+        btn.setAttribute("style", btnStyle);
 
-    placements.forEach(placement => {
-      let btn = document.createElement("button");
-      btn.innerHTML = placement.label;
-      btn.setAttribute("data-placement-value", placement.value);
+        btn.addEventListener("click", () => {
+          let queenRef = riggingQueens[index];
+          if(!queenRef) return;
 
-      let isSelected = (placement.value === queen.currentRiggedPlacement ||
-                        (placement.value === "BTM2" && queen.currentRiggedPlacement === "BOTTOM"));
+          let newPlacement = placement.value === "BTM2" ? "BOTTOM" : placement.value;
+          queenRef.currentRiggedPlacement = placement.value;
 
-      let btnStyle = `
-        padding: 10px 6px;
-        border-radius: 8px;
-        border: 2px solid ${isSelected ? '#ffffff' : 'transparent'};
-        background: ${placement.bg};
-        color: ${placement.color};
-        font-size: 13px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        box-shadow: ${isSelected ? '0 0 0 3px rgba(255,255,255,0.3)' : '0 2px 4px rgba(0,0,0,0.2)'};
-      `;
-      btn.setAttribute("style", btnStyle);
+          console.log(`🎭 Rigging: ${queenRef.name} → ${newPlacement}`);
 
-      btn.addEventListener("click", () => {
-        let queenRef = riggingQueens[index];
-        if(!queenRef) return;
+          // Update rigging outcome
+          setRiggingOutcomePlacement(riggingEpisodeIndex, queenRef, newPlacement);
 
-        let newPlacement = placement.value === "BTM2" ? "BOTTOM" : placement.value;
-        queenRef.currentRiggedPlacement = placement.value;
+          // Hide buttons after selection
+          queenRef.riggingButtonsVisible = false;
 
-        console.log(`🎭 Rigging: ${queenRef.name} → ${newPlacement}`);
-
-        // Update button styles in this card
-        buttonsGrid.querySelectorAll("button").forEach(b => {
-          let isNowSelected = b.getAttribute("data-placement-value") === placement.value;
-          b.style.border = isNowSelected ? '2px solid #ffffff' : '2px solid transparent';
-          b.style.boxShadow = isNowSelected ? '0 0 0 3px rgba(255,255,255,0.3)' : '0 2px 4px rgba(0,0,0,0.2)';
+          // Re-sort and re-render the grid in real-time
+          riggingQueens.sort((a, b) => compareRiggingQueens(riggingEpisodeIndex, a, b));
+          Rigging();
         });
 
-        // Update rigging outcome
-        setRiggingOutcomePlacement(riggingEpisodeIndex, queenRef, newPlacement);
-
-        // Re-sort and re-render the grid in real-time
-        riggingQueens.sort((a, b) => compareRiggingQueens(riggingEpisodeIndex, a, b));
-        Rigging();
+        buttonsGrid.appendChild(btn);
       });
 
-      buttonsGrid.appendChild(btn);
-    });
+      card.appendChild(buttonsGrid);
+    }
 
-    card.appendChild(buttonsGrid);
     grid.appendChild(card);
   }
 
