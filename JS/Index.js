@@ -15293,84 +15293,83 @@ function Rigging()
     card.appendChild(currentWrapper);
 
     let selectLabel = document.createElement("p");
-    selectLabel.innerHTML = "Rigged placement";
+    selectLabel.innerHTML = "Override placement";
     selectLabel.setAttribute("style","margin: 4px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #bdbdbd;");
     card.appendChild(selectLabel);
 
-    let select = document.createElement("select");
-    select.setAttribute("data-rigging-index", index);
-    select.setAttribute("style","padding: 8px 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.12); color: #ffffff; text-align: center; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; width: 100%; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);");
+    // Create placement buttons grid instead of dropdown
+    let buttonsGrid = document.createElement("div");
+    buttonsGrid.setAttribute("style","display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; margin-top: 8px;");
+    buttonsGrid.setAttribute("data-rigging-index", index);
 
-    const options = [
-      {value: 'WIN', label: 'WIN'},
-      {value: 'DOUBLEWIN', label: 'DOUBLE WIN'},
-      {value: 'TOP2', label: 'TOP 2'},
-      {value: 'HIGH', label: 'HIGH'},
-      {value: 'SAFE', label: 'SAFE'},
-      {value: 'LOW', label: 'LOW'},
-      {value: 'BOTTOM', label: 'BOTTOM'},
-      {value: 'ELIMINATED', label: 'ELIMINATED'},
-      {value: 'NONE', label: 'Not in episode'}
+    const placements = [
+      {value: 'WIN', label: 'WIN', bg: 'royalblue', color: 'white'},
+      {value: 'HIGH', label: 'HIGH', bg: 'lightblue', color: '#000000'},
+      {value: 'SAFE', label: 'SAFE', bg: '#F5EBF5', color: '#000000'},
+      {value: 'LOW', label: 'LOW', bg: 'lightpink', color: '#000000'},
+      {value: 'BTM2', label: 'BTM2', bg: 'tomato', color: 'white'},
+      {value: 'ELIMINATED', label: 'ELIM', bg: 'red', color: 'white'}
     ];
-
-    options.forEach(option => {
-      let opt = document.createElement("option");
-      opt.value = option.value;
-      opt.text = option.label;
-      select.appendChild(opt);
-    });
 
     let riggedPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
     let normalizedRigged = normalizePlacementValue(riggedPlacement);
-    if(riggedPlacement === "" || normalizedRigged === "")
-    {
-      select.value = 'NONE';
-    }
-    else if(options.some(opt => opt.value === normalizedRigged))
-    {
-      select.value = normalizedRigged;
-    }
-    else if(options.some(opt => opt.value === riggedPlacement))
-    {
-      select.value = riggedPlacement;
-    }
-    else
-    {
-      select.value = 'NONE';
-    }
+    if(normalizedRigged === "BOTTOM") normalizedRigged = "BTM2";
 
-    select.addEventListener("change", event => {
-      let queenRef = riggingQueens[index];
-      if(!queenRef)
-      {
-        return;
-      }
+    // Store current selection for this queen
+    if(!queen.currentRiggedPlacement) queen.currentRiggedPlacement = normalizedRigged || "";
 
-      let newPlacement = event.target.value === 'NONE' ? "" : event.target.value;
-      let previousPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queenRef) || "";
-      if(previousPlacement === newPlacement)
-      {
-        return;
-      }
+    placements.forEach(placement => {
+      let btn = document.createElement("button");
+      btn.innerHTML = placement.label;
+      btn.setAttribute("data-placement-value", placement.value);
 
-      setRiggingOutcomePlacement(riggingEpisodeIndex, queenRef, newPlacement);
-      harmonizeRiggingLipSyncResults(getRiggingOutcome(riggingEpisodeIndex));
+      let isSelected = (placement.value === queen.currentRiggedPlacement ||
+                        (placement.value === "BTM2" && queen.currentRiggedPlacement === "BOTTOM"));
 
-      if(typeof window !== "undefined" && typeof window.requestAnimationFrame === "function")
-      {
-        window.requestAnimationFrame(() => {
-          Rigging();
+      let btnStyle = `
+        padding: 10px 6px;
+        border-radius: 8px;
+        border: 2px solid ${isSelected ? '#ffffff' : 'transparent'};
+        background: ${placement.bg};
+        color: ${placement.color};
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        box-shadow: ${isSelected ? '0 0 0 3px rgba(255,255,255,0.3)' : '0 2px 4px rgba(0,0,0,0.2)'};
+      `;
+      btn.setAttribute("style", btnStyle);
+
+      btn.addEventListener("click", () => {
+        let queenRef = riggingQueens[index];
+        if(!queenRef) return;
+
+        let newPlacement = placement.value === "BTM2" ? "BOTTOM" : placement.value;
+        queenRef.currentRiggedPlacement = placement.value;
+
+        console.log(`🎭 Rigging: ${queenRef.name} → ${newPlacement}`);
+
+        // Update button styles in this card
+        buttonsGrid.querySelectorAll("button").forEach(b => {
+          let isNowSelected = b.getAttribute("data-placement-value") === placement.value;
+          b.style.border = isNowSelected ? '2px solid #ffffff' : '2px solid transparent';
+          b.style.boxShadow = isNowSelected ? '0 0 0 3px rgba(255,255,255,0.3)' : '0 2px 4px rgba(0,0,0,0.2)';
         });
-      }
-      else
-      {
-        setTimeout(() => {
-          Rigging();
-        }, 0);
-      }
+
+        // Update rigging outcome
+        setRiggingOutcomePlacement(riggingEpisodeIndex, queenRef, newPlacement);
+
+        // Re-sort and re-render the grid in real-time
+        riggingQueens.sort((a, b) => compareRiggingQueens(riggingEpisodeIndex, a, b));
+        Rigging();
+      });
+
+      buttonsGrid.appendChild(btn);
     });
 
-    card.appendChild(select);
+    card.appendChild(buttonsGrid);
     grid.appendChild(card);
   }
 
@@ -15423,22 +15422,24 @@ function ApplyRigging()
     return;
   }
 
-  let selects = document.querySelectorAll('[data-rigging-index]');
-  console.log("Found", selects.length, "select elements");
+  console.log("Processing rigging for", riggingQueens.length, "queens");
 
-  selects.forEach(select => {
-    let index = parseInt(select.getAttribute('data-rigging-index'));
-    let queen = riggingQueens[index];
+  riggingQueens.forEach((queen, index) => {
     if(!queen)
     {
-      console.log(`⚠️ No queen found at rigging index ${index}`);
+      console.log(`⚠️ No queen found at index ${index}`);
       return;
     }
 
-    let newPlacement = select.value;
+    // Get placement from the queen's currentRiggedPlacement property
+    let newPlacement = queen.currentRiggedPlacement || "";
     if(newPlacement === 'NONE')
     {
       newPlacement = "";
+    }
+    if(newPlacement === 'BTM2')
+    {
+      newPlacement = "BOTTOM";
     }
 
     console.log(`\n🎭 Processing ${queen.name}:`);
