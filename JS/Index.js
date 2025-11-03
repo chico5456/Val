@@ -90,26 +90,30 @@ let riggingReturnCallback = null;
 let riggingEpisodeOutcomes = {};
 
 
+let rateAQueenState = {
+  active: false,
+  seasonKey: null,
+  lastEpisodeResults: null,
+  displayedEpisodeIndex: null,
+  carryOverQueen: null,
+  pendingShowdown: false,
+  showdownQueens: null,
+  showdownActive: false,
+  lowestByEpisode: {}
+};
+
+
 let reads = [
   ", you\'re so old you\'re still on MySpace.com.",
   "Sweetie, I\'m sorry! If you don\'t have a wrist band you can\'t be in here for the meet and greet!"
 ];
 
-let rusicalcastsizes = 
+let rusicalcastsizes =
 [
-11,
-/*13,
-11,
-11,
-14,
-7,
-12,
-9,      
-5,
-9,
-7,
-11,
-9*/
+ 11,
+ 10,
+ 9,
+ 7
 ];
 
 let lipsyncssongs = [];
@@ -3219,57 +3223,65 @@ class Ball{
       this.winner = false;
       this.regrusical = [
         "Shade: The Rusical",
-        /*"Glamazonian Airways",
-        "Bitch Perfect",
-        "Kardashian: The Musical",
-        "PharmaRusical",
-        "Cher: The Unauthorized Rusical",
-        "Trump: The Rusical",
-        "Madonna: The Unauthorized Rusical",
-        "Viva Drag Vegas",
+        "The Wicked Wiz of Oz: The Rusical!",
         "Social Media: The Unverified Rusical",
-        "Moulin Ru: The Rusical",
-        "Rats: The Rusical",
-        "Under the Big Top",
-        "Dance Drags : The Dancing Rusical",
-        "Rainbow's Simulator : The Angry Rusical"*/
+        "Moulin Ru: The Rusical"
       ];
-  
+
       this.castsizes = [
         11,
-        /*13,
-        11,
-        11,
-        14,
-        7,
-        12,
-        9,      
-        5,
-        9,
-        7,
-        11,
-        11,
         10,
-        14*/
+        9,
+        7
       ];
-  
+
       this.roles =
       [
-        [new Role("Main","Good Penny","Hard"),new Role("Main","Bad Penny","Hard"),new Role("Main","Shady Lady","Medium"),new Role("Forgettable","Pageant Queen 1","Easy"), new Role("Forgettable","Pageant Queen 2","Easy"), new Role("Forgettable","Comedy Queen 1","Medium"), new Role("Forgettable","Comedy Queen 2","Medium"), new Role("Mid","Amanda","Easy"), new Role("Mid","Showgirl","Easy"), new Role("Side","Les Mizabella","Medium"), new Role("Mid","Bertha","Medium")]/*,
-        [],
-        [],
-        ["Blac Chyna", "Britney Spears", "Kris Jenner", "Lindsay Lohan", "Paris Hilton", "Kourtney Kardashian", "Kendall Jenner", "Khloe Kardashian", "Kylie Jenner", "Kim Kardashian", "North West"],
-        [],
-        ["60's Cher", "70s Variety Show Cher", "Rockstar Cher", "Comeback Cher", "Disco Cher", "Movie Star Cher", "70s Variety Show Cher"],
-        ["Oprah Winfrey", "Ivana Trump", "Kelly Anne Conway", "Stormy Daniels", "Shandy", "Sarah Huckabee Sanders", "Melania Trump", "Betsy DeVos", "Hillary Clinton", "Rosie O'Donell", "Omarosa", "Ivanka Trump"],
-        ["Unapologetic Madonna", "Enlightened Madonna", "Early Madonna", "Sexy Madonna", "Movie Star Madonna", "Femmepire Madonna", "Boy Toy Madonna", "Madonna Forever", "Cone Bra Madonna"],
-        [],
-        ["Foxy", "Nikita", "Natasha", "Miss TokTik", "Makie Tuckenberg", "Lady Tweets", "EmShee", "Reverend Dr. Lady Linked In", "Miss InstaGlam"],
-        ["Mama Z", "the Green Fairy", "Uniqueness", "Charisma", "Nerve", "Talent", "Saltine"],
-        ["Evita Von Fleas", "Scabies", "Specimen One", "Jane", "Miss Disentry", "Depravity", "Dame Doody Stench", "Rap Pack #1", "Rat Pack #2", "Rat Pack #3", "Scat Rat"],
-        ["Henny Wise", "Himbo", "Ring Mistress", "Bang", "Bianca", "Leather", "Corsette", "Reveliana", "Bing", "Lace", "Bong"],
-        ["Abby Lee Drager", "Kelly Hyland", "Holly \"God\" Fraisier", "My Little Jill", "Brooke Hyland", "My Little Kendall", "The Old Cathy", "Nia Sioux", "Paige Hyland", "Maddie Ziegler"],
-        ["Edssb", "Rainbow", "Oliver", "Valestal", "Brianna", "Tati", "Jordyn", "Izzy", "Tommy", "Rusha", "Ericcfraga", "Dyslereina", "Flop Squad #1", "Flop Squand #2"]*/
+        [
+          new Role("Main","Good Penny","Hard"),
+          new Role("Main","Bad Penny","Hard"),
+          new Role("Main","Shady Lady","Medium"),
+          new Role("Forgettable","Pageant Queen 1","Easy"),
+          new Role("Forgettable","Pageant Queen 2","Easy"),
+          new Role("Forgettable","Comedy Queen 1","Medium"),
+          new Role("Forgettable","Comedy Queen 2","Medium"),
+          new Role("Mid","Amanda","Easy"),
+          new Role("Mid","Showgirl","Easy"),
+          new Role("Side","Les Mizabella","Medium"),
+          new Role("Mid","Bertha","Medium")
+        ],
+        [
+          new Role("Main","Kansas Dorothy","Hard"),
+          new Role("Main","Harlem Dorothy","Hard"),
+          new Role("Main","Tin Woman","Medium"),
+          new Role("Main","Cher Wicked Witch","Medium"),
+          new Role("Side","Good Witch","Medium"),
+          new Role("Side","Scarecrow","Medium"),
+          new Role("Side","Lioness","Medium"),
+          new Role("Mid","Flying Monkey (Kori)","Easy"),
+          new Role("Mid","Flying Monkey (Lydia)","Easy"),
+          new Role("Side","Green Witch","Medium")
+        ],
+        [
+          new Role("Main","Miss TokTik","Hard"),
+          new Role("Main","Makie Tuckenberg","Medium"),
+          new Role("Main","Lady Tweets","Medium"),
+          new Role("Mid","EmShee","Medium"),
+          new Role("Mid","Reverend Dr. Lady Linked In","Medium"),
+          new Role("Mid","Miss InstaGlam","Medium"),
+          new Role("Side","Foxy","Easy"),
+          new Role("Side","Nikita","Easy"),
+          new Role("Side","Natasha","Easy")
+        ],
+        [
+          new Role("Main","Mama Z","Hard"),
+          new Role("Main","The Green Fairy","Medium"),
+          new Role("Main","Uniqueness","Medium"),
+          new Role("Side","Charisma","Medium"),
+          new Role("Side","Nerve","Medium"),
+          new Role("Side","Talent","Medium"),
+          new Role("Mid","Saltine","Easy")
+        ]
       ];
   
       this.chosen = getRandomInt(0,this.regrusical.length-1);
@@ -10298,7 +10310,7 @@ function Finale()
         CurrentSeason.lipsyncs.push(ls3);
         Tops[0].trackrecord.push('WINNER');
         Tops[0].placement = 1;
-        Tops[1].trackrecord.push('L3RD');
+        Tops[1].trackrecord.push('RUNNER UP');
         Tops[1].placement = 2;
         CurrentSeason.eliminatedCast.unshift(Tops[1]);
         CurrentSeason.currentCast.splice(CurrentSeason.currentCast.indexOf(Tops[1]),1);
@@ -10738,7 +10750,7 @@ function Finale()
         Main.createText(Tops[0].GetName()+", YOU ARE THE WINNER OF "+CurrentSeason.seasonname+".","Bold");
         Tops[0].trackrecord.push('WINNER');
         Tops[0].placement = 1;
-        Tops[1].trackrecord.push('L3RD');
+        Tops[1].trackrecord.push('RUNNER UP');
         Tops[1].placement = 2;
         CurrentSeason.currentCast.sort((a, b) => a.placement - b.placement);
         Steps++;
@@ -10865,6 +10877,66 @@ function Placements() {
   // Special handling for Double Premiere - TOP2 lipsync for WIN, 2 HIGH, rest SAFE
   if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length <= 2)
   {
+    let episodeIndex = CurrentSeason.episodes.length - 1;
+    if(isRateAQueenActiveForCurrentSeason() &&
+       rateAQueenState.lastEpisodeResults &&
+       rateAQueenState.lastEpisodeResults.episodeIndex === episodeIndex &&
+       rateAQueenState.displayedEpisodeIndex !== episodeIndex)
+    {
+      Main = new Screen();
+      Main.clean();
+
+      Main.createBigText("Rate-A-Queen Results");
+
+      let results = rateAQueenState.lastEpisodeResults;
+      if(results.ratingPanelNames && results.ratingPanelNames.length > 0)
+      {
+        let panel = document.createElement("p");
+        panel.setAttribute("style", "font-size: 18px; font-weight: 600; margin-bottom: 12px;");
+        panel.innerHTML = `Rating panel: ${results.ratingPanelNames.join(', ')}`;
+        Main.MainScreen.append(panel);
+      }
+
+      let list = document.createElement("div");
+      list.setAttribute("style", "display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; max-width: 520px; align-self: center;");
+
+      results.scoreboard.forEach(entry => {
+        let row = document.createElement("div");
+        row.setAttribute("style", "display: flex; justify-content: space-between; background: rgba(0,0,0,0.35); padding: 10px 14px; border-radius: 12px; font-size: 16px;");
+        let name = typeof entry.queen.GetName === "function" ? entry.queen.GetName() : entry.queen.name;
+        row.innerHTML = `<span><strong>${entry.rank}.</strong> ${name}</span><span>${entry.average.toFixed(2)}/10</span>`;
+        list.appendChild(row);
+      });
+
+      Main.MainScreen.append(list);
+
+      if(results.scoreboard.length > 0)
+      {
+        let lowestEntry = results.scoreboard[results.scoreboard.length - 1];
+        let lowestName = typeof lowestEntry.queen.GetName === "function" ? lowestEntry.queen.GetName() : lowestEntry.queen.name;
+        let note = document.createElement("p");
+        note.setAttribute("style", "font-size: 16px; font-weight: 500;");
+        if(episodeIndex === 0)
+        {
+          note.innerHTML = `${lowestName} received the lowest score and will face off against the lowest-rated queen from the next premiere episode.`;
+        }
+        else if(rateAQueenState.carryOverQueen)
+        {
+          let carryName = typeof rateAQueenState.carryOverQueen.GetName === "function" ? rateAQueenState.carryOverQueen.GetName() : rateAQueenState.carryOverQueen.name;
+          note.innerHTML = `${lowestName} now joins ${carryName} in the Rate-A-Queen showdown.`;
+        }
+        else
+        {
+          note.innerHTML = `${lowestName} lands at the bottom of the Rate-A-Queen scores.`;
+        }
+        Main.MainScreen.append(note);
+      }
+
+      rateAQueenState.displayedEpisodeIndex = episodeIndex;
+      Main.createButton("Proceed", "Placements()");
+      return;
+    }
+
     Main = new Screen();
     Main.clean();
 
@@ -11538,12 +11610,51 @@ function DoublePremiereLipsync() {
   {
     Steps = 0;
     TopsQueens = [];
-    Main.createButton("Proceed", "GetPromoTable()");
+    if(rateAQueenState.pendingShowdown && rateAQueenState.showdownQueens && rateAQueenState.showdownQueens.length >= 2)
+    {
+      Main.createButton("Proceed", "RateAQueenShowdown()");
+    }
+    else
+    {
+      Main.createButton("Proceed", "GetPromoTable()");
+    }
   }
   else
   {
     Main.createButton("Proceed", "DoublePremiereLipsync()");
   }
+}
+
+function RateAQueenShowdown()
+{
+  if(!rateAQueenState.pendingShowdown || !Array.isArray(rateAQueenState.showdownQueens) || rateAQueenState.showdownQueens.length < 2)
+  {
+    GetPromoTable();
+    return;
+  }
+
+  let episodeIndex = CurrentSeason.episodes.length - 1;
+  BottomQueens = rateAQueenState.showdownQueens.slice(0, 2);
+  Bottoms = BottomQueens.slice();
+  Tops = [];
+  TopsQueens = [];
+
+  Safes = Safes.filter(q => BottomQueens.indexOf(q) === -1);
+
+  BottomQueens.forEach(queen => {
+    setDoublePremierePlacement(queen, episodeIndex, "BOTTOM");
+    if(CurrentSeason.currentCast.indexOf(queen) === -1)
+    {
+      CurrentSeason.currentCast.push(queen);
+    }
+  });
+
+  rateAQueenState.pendingShowdown = false;
+  rateAQueenState.showdownActive = true;
+  rateAQueenState.showdownQueens = null;
+
+  Steps = 0;
+  Lipsync();
 }
 
 function badonkaDunkPullLever(leverIndex) {
@@ -11671,7 +11782,12 @@ function Lipsync() {
         {
           Main.createImage(BottomQueens[i].image,"#fa2525");
         }
-        if(BottomQueens.length==2)
+        if(rateAQueenState.showdownActive && BottomQueens.length==2)
+        {
+          Main.createText("This Rate-A-Queen showdown will decide who stays in the competition.", 'Bold');
+          Main.createText(BottomQueens[0].GetName()+" and "+BottomQueens[1].GetName()+", impress me and prove those ratings wrong!" , 'Bold');
+        }
+        else if(BottomQueens.length==2)
         {
           Main.createText("Two queens stand before me.", 'Bold');
           Main.createText(BottomQueens[0].GetName()+" and "+BottomQueens[1].GetName()+", this is your last to impress me, and save yourself from elimination." , 'Bold');
@@ -11775,6 +11891,12 @@ function Lipsync() {
             Main.createText(BottomQueens[0].GetName()+", shantay you stay.", 'Bold');
             BottomQueens[0].trackrecord.push("BOTTOM");
             BottomQueens[0].ppe += 1;
+
+            if(rateAQueenState.showdownActive)
+            {
+              rateAQueenState.showdownActive = false;
+              rateAQueenState.carryOverQueen = null;
+            }
           }
         }
         else
@@ -11808,6 +11930,12 @@ function Lipsync() {
 
             BottomQueens[0].ppe += 1;
             BottomQueens[1].ppe += 1;
+
+            if(rateAQueenState.showdownActive)
+            {
+              rateAQueenState.showdownActive = false;
+              rateAQueenState.carryOverQueen = null;
+            }
           }
         }
         break;
@@ -11832,7 +11960,8 @@ function Lipsync() {
         }
         if(BottomQueens.length==2)
         {
-          if((BottomQueens[0].oglipsyncscore >= 12) && (BottomQueens[1].oglipsyncscore >= 12) && (CurrentSeason.doubleShantay == false || lifeCase7ForceDoubleShantay) && CurrentSeason.currentCast.length>6)
+          let qualifiesForDoubleShantay = (BottomQueens[0].oglipsyncscore >= 12) && (BottomQueens[1].oglipsyncscore >= 12);
+          if((qualifiesForDoubleShantay || lifeCase7ForceDoubleShantay) && (CurrentSeason.doubleShantay == false || lifeCase7ForceDoubleShantay) && CurrentSeason.currentCast.length>6)
           {
             Main.createBigText("Shantay you also stay!");
             Main.createImage(BottomQueens[1].image, "#ff8a8a");
@@ -11844,6 +11973,12 @@ function Lipsync() {
 
             let ls = new LipsyncSong([BottomQueens[0],BottomQueens[1]], songschosen, CurrentSeason.episodes.length, 'btm', "NONE");
             CurrentSeason.lipsyncs.push(ls);
+
+            if(rateAQueenState.showdownActive)
+            {
+              rateAQueenState.showdownActive = false;
+              rateAQueenState.carryOverQueen = null;
+            }
           }
           else if((BottomQueens[0].oglipsyncscore <= 1) && (BottomQueens[1].oglipsyncscore <= 1) && CurrentSeason.currentCast.length>6  && (CurrentSeason.doubleSashay == false || lifeCase7ForceDoubleSashay))
           {
@@ -11880,6 +12015,12 @@ function Lipsync() {
             CurrentSeason.eliminatedCast.unshift(BottomQueens[1]);
 
             CurrentSeason.doubleSashay = true;
+
+            if(rateAQueenState.showdownActive)
+            {
+              rateAQueenState.showdownActive = false;
+              rateAQueenState.carryOverQueen = null;
+            }
           }
           else
           {
@@ -11930,6 +12071,12 @@ function Lipsync() {
               CurrentSeason.lipsyncs.push(ls);
               CurrentSeason.currentCast.splice(CurrentSeason.currentCast.indexOf(BottomQueens[1]),1);
               CurrentSeason.eliminatedCast.unshift(BottomQueens[1]);
+
+              if(rateAQueenState.showdownActive)
+              {
+                rateAQueenState.showdownActive = false;
+                rateAQueenState.carryOverQueen = null;
+              }
             }
 
           }
@@ -12128,6 +12275,12 @@ function Lipsync() {
           // Reset Badonka Dunk variables
           badonkaDunkLoser = null;
           badonkaDunkPulledLever = null;
+        }
+
+        if(rateAQueenState.showdownActive)
+        {
+          rateAQueenState.showdownActive = false;
+          rateAQueenState.carryOverQueen = null;
         }
         break;
       }
@@ -12824,7 +12977,7 @@ function GetPromoTable()
 
     console.log("isFinaleTime:", isFinaleTime);
 
-    if(CurrentSeason.episodes.length > 0 && !isFinaleTime)
+    if(CurrentSeason.episodes.length > 0 && !isFinaleTime && !done && CurrentSeason.currentCast.length > 1)
     {
       let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
       console.log("Latest episode index:", latestEpisodeIndex);
@@ -13756,6 +13909,124 @@ function applySelectedChallenge(choice)
   }
 }
 
+function isRateAQueenActiveForCurrentSeason()
+{
+  return rateAQueenState.active === true &&
+         CurrentSeason &&
+         CurrentSeason.seasonname === "Drag Race Season 17";
+}
+
+function getRateAQueenRatingPanel(episodeIndex)
+{
+  if(episodeIndex === 0)
+  {
+    return secondprem ? secondprem.slice() : [];
+  }
+  if(episodeIndex === 1)
+  {
+    return firstprem ? firstprem.slice() : [];
+  }
+  return [];
+}
+
+function handleRateAQueenForDoublePremiere(episodeIndex, performingQueens)
+{
+  if(!isRateAQueenActiveForCurrentSeason())
+  {
+    return null;
+  }
+
+  if(!Array.isArray(performingQueens) || performingQueens.length === 0)
+  {
+    return null;
+  }
+
+  let ratingPanel = getRateAQueenRatingPanel(episodeIndex);
+  if(!ratingPanel || ratingPanel.length === 0)
+  {
+    return null;
+  }
+
+  let performanceScores = performingQueens.map(q => q.perfomancescore || 0);
+  let maxScore = Math.max(...performanceScores);
+  let minScore = Math.min(...performanceScores);
+  let scoreRange = Math.max(1, maxScore - minScore);
+
+  let scoreboard = [];
+  performingQueens.forEach(queen => {
+    let base = 7;
+    if(typeof queen.perfomancescore === "number")
+    {
+      let normalized = (maxScore - queen.perfomancescore) / scoreRange;
+      base += normalized * 2.5;
+    }
+
+    let votes = Math.max(3, ratingPanel.length);
+    let scores = [];
+    for(let i = 0; i < votes; i++)
+    {
+      let noise = (Math.random() - 0.5) * 1.2;
+      let rating = base + noise;
+      rating = Math.min(10, Math.max(4.5, rating));
+      scores.push(Number(rating.toFixed(2)));
+    }
+
+    let sum = scores.reduce((acc, value) => acc + value, 0);
+    let average = scores.length > 0 ? sum / scores.length : base;
+    scoreboard.push({queen: queen, average: average, scores: scores});
+  });
+
+  scoreboard.sort((a, b) => {
+    if(b.average !== a.average)
+    {
+      return b.average - a.average;
+    }
+    let nameA = a.queen.GetName ? a.queen.GetName() : a.queen.name;
+    let nameB = b.queen.GetName ? b.queen.GetName() : b.queen.name;
+    return nameA.localeCompare(nameB);
+  });
+
+  let detailed = scoreboard.map((entry, index) => {
+    return {
+      queen: entry.queen,
+      rank: index + 1,
+      average: Number(entry.average.toFixed(2)),
+      scores: entry.scores.slice()
+    };
+  });
+
+  rateAQueenState.lastEpisodeResults = {
+    episodeIndex: episodeIndex,
+    scoreboard: detailed,
+    ratingPanelNames: ratingPanel.map(q => typeof q.GetName === "function" ? q.GetName() : (q.name || q)),
+    timestamp: Date.now()
+  };
+  rateAQueenState.displayedEpisodeIndex = null;
+
+  let topTwo = detailed.slice(0, Math.min(2, detailed.length)).map(entry => entry.queen);
+  let topFour = detailed.slice(0, Math.min(4, detailed.length)).map(entry => entry.queen);
+  let lowestEntry = detailed[detailed.length - 1] || null;
+  let lowestQueen = lowestEntry ? lowestEntry.queen : null;
+
+  if(episodeIndex === 0)
+  {
+    rateAQueenState.carryOverQueen = lowestQueen;
+  }
+
+  if(lowestQueen)
+  {
+    rateAQueenState.lowestByEpisode[episodeIndex] = lowestQueen;
+  }
+
+  return {
+    topTwo: topTwo,
+    topFour: topFour,
+    lowestQueen: lowestQueen,
+    ratingPanelNames: rateAQueenState.lastEpisodeResults.ratingPanelNames,
+    scoreboard: detailed
+  };
+}
+
 function CheckTheme(){
   let theme = localStorage.getItem("theme");
   if(theme!=null)
@@ -13791,45 +14062,70 @@ function RankQueens(){
     if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length <= 2)
     {
       console.log("=== DOUBLE PREMIERE RANKING ===");
-      console.log("Episode:", CurrentSeason.episodes.length);
+      let episodeIndex = CurrentSeason.episodes.length - 1;
+      console.log("Episode index:", episodeIndex);
       console.log("Current Cast:", CurrentSeason.currentCast.map(q => q.name));
-      console.log("First Prem Group:", firstprem.map(q => q.name));
-      console.log("Second Prem Group:", secondprem.map(q => q.name));
 
-      // For double premiere: 2 TOP2, 2 HIGH, rest SAFE, no elimination
-      // Add top 4 queens - 2 will be TOP2 (lipsync for win), 2 will be HIGH
-      for(let i = 0; i<4; i++)
+      let performingQueens = CurrentSeason.currentCast.slice();
+      let rateResult = handleRateAQueenForDoublePremiere(episodeIndex, performingQueens);
+
+      Tops = [];
+      TopsQueens = [];
+
+      if(rateResult)
       {
-        Tops.push(CurrentSeason.currentCast[i]);
+        Tops = rateResult.topFour.slice();
+        TopsQueens = rateResult.topTwo.slice();
+        console.log("Rate-A-Queen Top Two:", TopsQueens.map(q => q.name));
+      }
+      else
+      {
+        for(let i = 0; i < Math.min(4, performingQueens.length); i++)
+        {
+          Tops.push(performingQueens[i]);
+        }
+        TopsQueens = Tops.slice(0, Math.min(2, Tops.length));
+        console.log("Default Top Two:", TopsQueens.map(q => q.name));
+      }
+
+      let topSet = new Set(Tops);
+      Critiqued = performingQueens.slice();
+
+      performingQueens.forEach(queen => {
+        if(topSet.has(queen))
+        {
+          return;
+        }
+
+        let placement = "SAFE";
+        if(rateResult && rateResult.lowestQueen === queen)
+        {
+          placement = "LOW";
+        }
+
+        setDoublePremierePlacement(queen, episodeIndex, placement);
+        if(placement === "SAFE")
+        {
+          queen.ppe += 3;
+          queen.safes++;
+        }
+        else
+        {
+          queen.ppe += 1;
+        }
+        Safes.push(queen);
+      });
+
+      if(rateResult && episodeIndex === 1 && rateResult.lowestQueen && rateAQueenState.carryOverQueen)
+      {
+        rateAQueenState.pendingShowdown = true;
+        rateAQueenState.showdownQueens = [rateAQueenState.carryOverQueen, rateResult.lowestQueen];
       }
 
       console.log("Top 4 Queens:", Tops.map(q => q.name));
-
-      // Mark the top 2 as TOP2 queens for lipsync for the win
-      TopsQueens = [];
-      TopsQueens.push(CurrentSeason.currentCast[0]);
-      TopsQueens.push(CurrentSeason.currentCast[1]);
-
-      console.log("TOP2 (Lipsync for WIN):", TopsQueens.map(q => q.name));
-
-      // Everyone else is SAFE
-      for(let i = 4; i<CurrentSeason.currentCast.length; i++)
-      {
-        CurrentSeason.currentCast[i].trackrecord.push("SAFE");
-        CurrentSeason.currentCast[i].ppe += 3;
-        Safes.push(CurrentSeason.currentCast[i]);
-        CurrentSeason.currentCast[i].safes++;
-      }
-
-      console.log("SAFE Queens:", Safes.map(q => q.name));
-
-      // Add all queens to critiqued (for the judging panel)
-      for (let index = 0; index < CurrentSeason.currentCast.length; index++) {
-        Critiqued.push(CurrentSeason.currentCast[index]);
-      }
-
+      console.log("Safe/Low Queens:", Safes.map(q => q.name));
       console.log("=== END DOUBLE PREMIERE RANKING ===");
-      return; // Skip normal ranking logic
+      return;
     }
 
     switch(CurrentSeason.lipsyncformat)
@@ -14226,8 +14522,8 @@ function applyTrackRecordPlacementStyle(cell, placementValue)
 
   switch(trimmed)
   {
-    case "L3RD":
-      cell.innerHTML = "LOST <br> 3RD ROUND";
+    case "RUNNER UP":
+      cell.innerHTML = "RUNNER-UP";
       cell.style.background = "#FFD100";
       cell.style.fontWeight = "bold";
       break;
@@ -14459,9 +14755,6 @@ function getPlacementBadgeConfig(rawPlacement)
 
   switch(upper)
   {
-    case "L3RD":
-      config.background = "#FFD100";
-      break;
     case "L2RD":
       config.background = "#FFAE00";
       break;
@@ -16346,11 +16639,46 @@ function LoadCasts(cc = true)
   if(cc == true)
     CT.SpecialCreateLine();
 }
+function resetRateAQueenState()
+{
+  rateAQueenState = {
+    active: false,
+    seasonKey: null,
+    lastEpisodeResults: null,
+    displayedEpisodeIndex: null,
+    carryOverQueen: null,
+    pendingShowdown: false,
+    showdownQueens: null,
+    showdownActive: false,
+    lowestByEpisode: {}
+  };
+}
+
+function configureSeasonPresetFeatures(seasonName)
+{
+  resetRateAQueenState();
+
+  if(!CurrentSeason)
+  {
+    return;
+  }
+
+  if(seasonName === "Drag Race Season 17")
+  {
+    CurrentSeason.badonkaDunk = true;
+    CurrentSeason.badonkaDunkPulledLevers = [];
+    CurrentSeason.badonkaDunkLevers = [true, false, false, false, false, false, true];
+    rateAQueenState.active = true;
+    rateAQueenState.seasonKey = "US17";
+  }
+}
+
 function CreateSeason(Name, Cast, Host, Finale, LC, LS, Premiere, Country)
 {
   let foot = document.getElementById("footer");
   foot.innerHTML = '<div style="background-color: white; text-align: center; vertical-align: baseline; padding: 10px;"><a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/3.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/3.0/88x31.png"/></a></div>';
   CurrentSeason = new Season(Name, Cast, Host, Finale, LC, LS, Premiere, Country);
+  configureSeasonPresetFeatures(Name);
   let screen = new Screen();
   screen.createBigText("Drag Up My Season!");
   screen.clean();
