@@ -15130,13 +15130,6 @@ function Rigging()
   console.log("Rigging episode index:", riggingEpisodeIndex);
   console.log("Rigging active:", riggingActive);
 
-  // Prevent re-entry: if rigging is already active and UI is shown, don't re-render
-  if(riggingActive && riggingEpisodeIndex !== null && riggingQueens.length > 0)
-  {
-    console.log("⚠️ Rigging already active with UI displayed, preventing re-entry");
-    return;
-  }
-
   if(CurrentSeason.episodes.length === 0)
   {
     console.log("❌ No episodes yet, showing error message");
@@ -15310,8 +15303,11 @@ function Rigging()
     currentBadge.setAttribute("style", currentBadge.getAttribute("style") + " min-width: 120px; text-align: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.3);");
 
     // Make badge clickable to toggle buttons
-    currentBadge.addEventListener("click", () => {
+    currentBadge.addEventListener("click", (e) => {
+      console.log("🔍 Badge clicked for", queen.GetName());
+      console.log("🔍 Current riggingButtonsVisible:", queen.riggingButtonsVisible);
       queen.riggingButtonsVisible = !queen.riggingButtonsVisible;
+      console.log("🔍 New riggingButtonsVisible:", queen.riggingButtonsVisible);
       Rigging(); // Re-render to show/hide buttons
     });
 
