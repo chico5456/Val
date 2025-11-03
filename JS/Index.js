@@ -12495,12 +12495,17 @@ function SyncDoublePremiereTrackRecords()
 {
   if(CurrentSeason.premiereformat != "DOUBLE")
   {
+    console.log("⏭️ Not a double premiere, skipping sync");
     return;
   }
 
   let expectedLength = CurrentSeason.episodes.length;
+  console.log("=== SYNC DOUBLE PREMIERE TRACK RECORDS ===");
+  console.log("Expected track record length:", expectedLength);
+
   if(expectedLength === 0)
   {
+    console.log("⚠️ No episodes yet, skipping sync");
     return;
   }
 
@@ -12508,39 +12513,72 @@ function SyncDoublePremiereTrackRecords()
   {
     if(!queen || !queen.trackrecord)
     {
+      console.log(`⚠️ Queen missing or no track record:`, queen?.name);
       return;
     }
 
+    console.log(`📊 ${queen.name}:`);
+    console.log(`   Track record before sync:`, JSON.stringify(queen.trackrecord));
+    console.log(`   Length: ${queen.trackrecord.length}, Expected: ${expectedLength}`);
+
+    let changesMade = false;
+
     while(queen.trackrecord.length < expectedLength)
     {
+      console.log(`   ➕ Adding empty string to reach expected length`);
       queen.trackrecord.push("");
+      changesMade = true;
     }
 
     if(queen.trackrecord.length > expectedLength)
     {
+      console.log(`   ✂️ Trimming from ${queen.trackrecord.length} to ${expectedLength}`);
       queen.trackrecord = queen.trackrecord.slice(0, expectedLength);
+      changesMade = true;
+    }
+
+    if(changesMade)
+    {
+      console.log(`   Track record after sync:`, JSON.stringify(queen.trackrecord));
+    }
+    else
+    {
+      console.log(`   ✅ No changes needed`);
     }
   };
 
+  console.log("\n🎭 Syncing first premiere group:");
   for (let index = 0; index < firstprem.length; index++)
   {
     ensureLength(firstprem[index]);
   }
 
+  console.log("\n🎭 Syncing second premiere group:");
   for (let index = 0; index < secondprem.length; index++)
   {
     ensureLength(secondprem[index]);
   }
+
+  console.log("=== SYNC COMPLETE ===\n");
 }
 
 
 function GetPromoTable()
   {
+    console.log("=== GET PROMO TABLE START ===");
+    console.log("Episodes count:", CurrentSeason.episodes.length);
+    console.log("Rigging active:", riggingActive);
+    console.log("Rigging last episode index:", riggingLastEpisodeIndex);
+
     if(CurrentSeason.episodes.length > 0)
     {
       let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+      console.log("Latest episode index:", latestEpisodeIndex);
+      console.log("Current cast track record lengths:", CurrentSeason.currentCast.map(q => ({name: q.name, length: q.trackrecord?.length || 0})));
+
       if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
       {
+        console.log("🎬 Triggering rigging for episode index:", latestEpisodeIndex);
         riggingEpisodeIndex = null;
         setRiggingReturnCallback(GetPromoTable);
         Rigging();
@@ -14901,13 +14939,19 @@ function applyStoredLipsyncScores(episodeIndex)
 
 function prepareRiggingForEpisode(episodeIndex)
 {
+  console.log("=== PREPARE RIGGING FOR EPISODE ===");
+  console.log("Episode index:", episodeIndex);
+  console.log("Episodes length:", CurrentSeason?.episodes?.length);
+
   if(episodeIndex == null || episodeIndex < 0)
   {
+    console.log("❌ Invalid episode index");
     return false;
   }
 
   if(CurrentSeason && CurrentSeason.premiereformat === "DOUBLE" && episodeIndex < 2)
   {
+    console.log("⏭️ Skipping rigging for double premiere episodes 0-1");
     return false;
   }
 
@@ -14928,8 +14972,17 @@ function prepareRiggingForEpisode(episodeIndex)
       queen.trackrecord = [];
     }
 
-    if(typeof queen.trackrecord[riggingEpisodeIndex] === "undefined")
+    console.log(`📊 ${queen.name} track record before prepare:`, JSON.stringify(queen.trackrecord));
+    console.log(`   Track record length: ${queen.trackrecord.length}, Episode index: ${riggingEpisodeIndex}`);
+
+    // Check if track record already has this index populated
+    if(queen.trackrecord.length > riggingEpisodeIndex)
     {
+      console.log(`   ✅ Track record already has entry at index ${riggingEpisodeIndex}: "${queen.trackrecord[riggingEpisodeIndex]}"`);
+    }
+    else if(typeof queen.trackrecord[riggingEpisodeIndex] === "undefined")
+    {
+      console.log(`   ⚠️ Track record missing entry at index ${riggingEpisodeIndex}, setting to empty string`);
       queen.trackrecord[riggingEpisodeIndex] = "";
     }
 
@@ -14958,8 +15011,14 @@ function prepareRiggingForEpisode(episodeIndex)
 
 function Rigging()
 {
+  console.log("=== RIGGING UI START ===");
+  console.log("Episodes count:", CurrentSeason.episodes.length);
+  console.log("Rigging episode index:", riggingEpisodeIndex);
+  console.log("Rigging active:", riggingActive);
+
   if(CurrentSeason.episodes.length === 0)
   {
+    console.log("❌ No episodes yet, showing error message");
     Main = new Screen();
     Main.clean();
     Main.createBigText("Producer Rigging");
@@ -14969,16 +15028,35 @@ function Rigging()
     return;
   }
 
+  // Validate track record state before rigging
+  console.log("\n🔍 Validating track record state:");
+  CurrentSeason.currentCast.forEach(queen => {
+    if(queen.trackrecord)
+    {
+      console.log(`   ${queen.name}: length ${queen.trackrecord.length}, episodes ${CurrentSeason.episodes.length}`);
+      if(queen.trackrecord.length > CurrentSeason.episodes.length)
+      {
+        console.warn(`   ⚠️ WARNING: ${queen.name} track record length (${queen.trackrecord.length}) > episodes length (${CurrentSeason.episodes.length})`);
+        console.warn(`   Trimming to correct length to prevent further duplication`);
+        queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+      }
+    }
+  });
+
   if(typeof riggingReturnCallback !== "function")
   {
+    console.log("Setting default rigging return callback to GetPromoTable");
     riggingReturnCallback = GetPromoTable;
   }
 
   if(riggingEpisodeIndex === null)
   {
     let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+    console.log("Preparing rigging for latest episode index:", latestEpisodeIndex);
+
     if(!prepareRiggingForEpisode(latestEpisodeIndex))
     {
+      console.log("❌ Failed to prepare rigging, aborting");
       riggingLastEpisodeIndex = latestEpisodeIndex;
       riggingActive = false;
       invokeRiggingReturnCallback();
@@ -14988,6 +15066,7 @@ function Rigging()
 
   if(riggingQueens.length === 0)
   {
+    console.log("❌ No queens to rig, completing episode");
     let completedEpisodeIndex = riggingEpisodeIndex;
     riggingEpisodeIndex = null;
     riggingLastEpisodeIndex = completedEpisodeIndex;
@@ -14997,6 +15076,7 @@ function Rigging()
   }
 
   riggingActive = true;
+  console.log("✅ Rigging active, showing UI for", riggingQueens.length, "queens");
 
   Main = new Screen();
   Main.clean();
@@ -15205,20 +15285,41 @@ function Rigging()
 
 function ApplyRigging()
 {
+  console.log("=== APPLY RIGGING START ===");
+  console.log("Rigging queens count:", riggingQueens.length);
+  console.log("Rigging episode index:", riggingEpisodeIndex);
+
   if(riggingQueens.length === 0 || riggingEpisodeIndex === null)
   {
+    console.log("❌ No queens or episode index, aborting rigging");
     riggingActive = false;
     invokeRiggingReturnCallback();
     return;
   }
 
   let targetEpisodeIndex = riggingEpisodeIndex;
+  console.log("Target episode index:", targetEpisodeIndex);
+  console.log("Expected track record length:", CurrentSeason.episodes.length);
+
+  // Validate that target episode index is within bounds
+  if(targetEpisodeIndex >= CurrentSeason.episodes.length)
+  {
+    console.error(`❌ ERROR: Target episode index ${targetEpisodeIndex} is >= episodes length ${CurrentSeason.episodes.length}`);
+    console.error("   This would create out-of-bounds track record entries!");
+    riggingActive = false;
+    invokeRiggingReturnCallback();
+    return;
+  }
+
   let selects = document.querySelectorAll('[data-rigging-index]');
+  console.log("Found", selects.length, "select elements");
+
   selects.forEach(select => {
     let index = parseInt(select.getAttribute('data-rigging-index'));
     let queen = riggingQueens[index];
     if(!queen)
     {
+      console.log(`⚠️ No queen found at rigging index ${index}`);
       return;
     }
 
@@ -15228,20 +15329,63 @@ function ApplyRigging()
       newPlacement = "";
     }
 
+    console.log(`\n🎭 Processing ${queen.name}:`);
+    console.log(`   Track record BEFORE:`, JSON.stringify(queen.trackrecord));
+    console.log(`   Track record length:`, queen.trackrecord.length);
+    console.log(`   Target episode index:`, targetEpisodeIndex);
+
+    // Ensure track record has the correct length before accessing
+    if(!queen.trackrecord)
+    {
+      console.log(`   ⚠️ Track record is null/undefined, initializing as empty array`);
+      queen.trackrecord = [];
+    }
+
+    // Ensure track record length matches expected length
+    while(queen.trackrecord.length <= targetEpisodeIndex)
+    {
+      console.log(`   ⚠️ Track record too short (${queen.trackrecord.length}), padding with empty string`);
+      queen.trackrecord.push("");
+    }
+
     let currentPlacement = queen.trackrecord[targetEpisodeIndex] || "";
+    console.log(`   Current placement at index ${targetEpisodeIndex}:`, `"${currentPlacement}"`);
+    console.log(`   New placement selected:`, `"${newPlacement}"`);
+
     if(currentPlacement === newPlacement)
     {
+      console.log(`   ⏭️ No change, skipping`);
       return;
     }
 
+    console.log(`   📉 Removing stats for:`, `"${currentPlacement}"`);
     applyPlacementDelta(queen, currentPlacement, -1);
+
+    console.log(`   📈 Adding stats for:`, `"${newPlacement}"`);
     applyPlacementDelta(queen, newPlacement, 1);
 
+    console.log(`   ✏️ Setting trackrecord[${targetEpisodeIndex}] = "${newPlacement}"`);
     queen.trackrecord[targetEpisodeIndex] = newPlacement;
+
+    console.log(`   Track record AFTER:`, JSON.stringify(queen.trackrecord));
+    console.log(`   Track record length AFTER:`, queen.trackrecord.length);
+
+    // CRITICAL VALIDATION: Ensure track record length doesn't exceed episodes length
+    if(queen.trackrecord.length > CurrentSeason.episodes.length)
+    {
+      console.error(`   ❌ CRITICAL ERROR: Track record length (${queen.trackrecord.length}) > episodes length (${CurrentSeason.episodes.length})`);
+      console.error(`   This indicates duplication! Trimming to correct length...`);
+      queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+      console.log(`   Track record after trim:`, JSON.stringify(queen.trackrecord));
+    }
+
     setRiggingOutcomePlacement(targetEpisodeIndex, queen, newPlacement);
   });
 
+  console.log("\n🔄 Harmonizing lipsync results...");
   harmonizeRiggingLipSyncResults(getRiggingOutcome(targetEpisodeIndex));
+
+  console.log("🎯 Applying rigging outcome to judging...");
   applyRiggingOutcomeToJudging(targetEpisodeIndex);
 
   riggingQueens = [];
@@ -15249,28 +15393,57 @@ function ApplyRigging()
   riggingLastEpisodeIndex = targetEpisodeIndex;
   riggingActive = false;
 
+  console.log("🔄 Running SyncDoublePremiereTrackRecords...");
   SyncDoublePremiereTrackRecords();
+
+  console.log("=== APPLY RIGGING COMPLETE ===");
+  console.log("Final track record lengths:", CurrentSeason.currentCast.map(q => ({name: q.name, length: q.trackrecord?.length || 0, record: JSON.stringify(q.trackrecord)})));
+
+  // Final validation to catch any issues
+  CurrentSeason.currentCast.forEach(queen => {
+    if(queen.trackrecord && queen.trackrecord.length > CurrentSeason.episodes.length)
+    {
+      console.error(`❌ FINAL CHECK FAILED: ${queen.name} has track record length ${queen.trackrecord.length} but only ${CurrentSeason.episodes.length} episodes!`);
+    }
+  });
+
   invokeRiggingReturnCallback();
 }
 
 function SkipRigging()
 {
+  console.log("=== SKIP RIGGING START ===");
+  console.log("Rigging episode index:", riggingEpisodeIndex);
+
   if(riggingEpisodeIndex === null)
   {
+    console.log("❌ No episode index, aborting skip");
     riggingActive = false;
     invokeRiggingReturnCallback();
     return;
   }
 
   let completedEpisodeIndex = riggingEpisodeIndex;
+  console.log("Completed episode index:", completedEpisodeIndex);
+  console.log("Track record lengths before skip:", CurrentSeason.currentCast.map(q => ({name: q.name, length: q.trackrecord?.length || 0})));
+
+  console.log("🔄 Resetting rigging outcome placements...");
   resetRiggingOutcomePlacements(completedEpisodeIndex);
+
+  console.log("🎯 Applying rigging outcome to judging (with original placements)...");
   applyRiggingOutcomeToJudging(completedEpisodeIndex);
+
   riggingQueens = [];
   riggingEpisodeIndex = null;
   riggingLastEpisodeIndex = completedEpisodeIndex;
   riggingActive = false;
 
+  console.log("🔄 Running SyncDoublePremiereTrackRecords...");
   SyncDoublePremiereTrackRecords();
+
+  console.log("=== SKIP RIGGING COMPLETE ===");
+  console.log("Final track record lengths:", CurrentSeason.currentCast.map(q => ({name: q.name, length: q.trackrecord?.length || 0, record: JSON.stringify(q.trackrecord)})));
+
   invokeRiggingReturnCallback();
 }
 
