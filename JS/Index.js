@@ -1429,8 +1429,16 @@ class Screen {
     for(let i = 0; i < CurrentSeason.episodes.length; i++)
     {
       let thep = document.createElement("th");
-      thep.innerHTML = "<p style='font-size:13px;'>"+CurrentSeason.episodes[i].name+"</p><p style='font-size:10px;'>("+CurrentSeason.episodes[i].type+")</p>";
+      let episode = CurrentSeason.episodes[i];
+      let episodeType = episode && episode.type ? episode.type.toString().trim() : "";
+      if(episodeType === "")
+      {
+        episodeType = "EP " + (i + 1);
+      }
+      let typeLabel = episodeType.toUpperCase();
+      thep.innerHTML = `<span style="display: block; font-size: 12px; letter-spacing: 0.08em;">${typeLabel}</span>`;
       thep.setAttribute("class","tr");
+      thep.setAttribute("style","width: 72px; min-width: 72px; max-width: 72px; text-align: center;");
       treps.append(thep);
     }
 
@@ -11509,7 +11517,7 @@ function Placements() {
 
 function DoublePremiereLipsync() {
   // Special lipsync for double premiere - TOP2 lipsync for the WIN, no elimination
-  if(CurrentSeason.episodes.length > 0)
+  if(CurrentSeason.episodes.length > 0 && !(CurrentSeason && CurrentSeason.premiereformat === "DOUBLE" && CurrentSeason.episodes.length <= 2))
   {
     let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
     if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
@@ -13132,43 +13140,44 @@ function SelectChallenge(){
   Main = new Screen();
   Main.clean();
   Main.createBigText("Select This Week's Challenge");
-  Main.createText("Choose which type of challenge the queens will compete in this week:", "Bold");
+  Main.createText("Tap a challenge to set the vibe for this episode!", "Bold");
   Main.createBR();
 
   // Create challenge selection buttons
   let challengeDiv = document.createElement("div");
-  challengeDiv.setAttribute("style", "display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 20px;");
+  challengeDiv.setAttribute("style", "display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; padding: 20px; width: min(720px, 100%); margin: 0 auto;");
 
   let challenges;
   if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length < 2)
   {
     Main.createText("For the double premiere, choose between a Talent Show or a Rumix.", "");
     challenges = [
-      {name: "Talent Show", value: "talent"},
-      {name: "Rumix", value: "rumix"}
+      {name: "Talent Show", value: "talent", emoji: "🎤"},
+      {name: "Rumix", value: "rumix", emoji: "🎧"}
     ];
   }
   else
   {
     challenges = [
-      {name: "Design", value: "design"},
-      {name: "Acting", value: "acting"},
-      {name: "Improv", value: "improv"},
-      {name: "Comedy/Stand-Up", value: "comedy"},
-      {name: "Dance/Choreography", value: "dance"},
-      {name: "Commercial", value: "commercial"},
-      {name: "Branding", value: "branding"},
-      {name: "Ball", value: "ball"},
-      {name: "Rusical", value: "rusical"},
-      {name: "Snatch Game", value: "snatch"},
-      {name: "Makeover", value: "makeover"}
+      {name: "Design", value: "design", emoji: "🧵"},
+      {name: "Acting", value: "acting", emoji: "🎭"},
+      {name: "Improv", value: "improv", emoji: "🎲"},
+      {name: "Comedy/Stand-Up", value: "comedy", emoji: "😂"},
+      {name: "Dance/Choreography", value: "dance", emoji: "💃"},
+      {name: "Commercial", value: "commercial", emoji: "📺"},
+      {name: "Branding", value: "branding", emoji: "✨"},
+      {name: "Ball", value: "ball", emoji: "🪩"},
+      {name: "Rusical", value: "rusical", emoji: "🎼"},
+      {name: "Snatch Game", value: "snatch", emoji: "🤡"},
+      {name: "Makeover", value: "makeover", emoji: "💄"}
     ];
   }
 
   challenges.forEach(challenge => {
     let btn = document.createElement("button");
-    btn.innerHTML = challenge.name;
+    btn.innerHTML = `<span style="font-size: 22px; display: block;">${challenge.emoji || "✨"}</span><span style="display: block; margin-top: 6px; font-size: 15px; letter-spacing: 0.04em;">${challenge.name}</span>`;
     btn.setAttribute("class", "button MainButton");
+    btn.setAttribute("style", "padding: 18px 14px; border-radius: 18px; background: rgba(255,255,255,0.12); color: #ffffff; font-weight: 600; text-transform: uppercase; box-shadow: 0 12px 24px rgba(0,0,0,0.25); backdrop-filter: blur(4px);");
     btn.setAttribute("onclick", `selectedChallengeType='${challenge.value}'; ChallengeAnnouncement();`);
     challengeDiv.appendChild(btn);
   });
@@ -13447,7 +13456,13 @@ function ChallengeAnnouncement(){
     }
     else
     {
-      if( (rusicalcastsizes.indexOf(CurrentSeason.currentCast.length)!=-1 /*&& getRandomInt(0,100)>60 */) && CurrentSeason.rusicals == 0)
+      let forcedChallengeHandled = false;
+      if(userSelectedChallenge)
+      {
+        forcedChallengeHandled = applySelectedChallenge(userSelectedChallenge);
+      }
+
+      if(!forcedChallengeHandled && (rusicalcastsizes.indexOf(CurrentSeason.currentCast.length)!=-1 /*&& getRandomInt(0,100)>60 */) && CurrentSeason.rusicals == 0)
       {
         CurrentChallenge = new Rusical();
         while(CurrentChallenge.castsizes[CurrentChallenge.chosen] != CurrentSeason.currentCast.length)
@@ -13458,21 +13473,21 @@ function ChallengeAnnouncement(){
         CurrentSeason.episodes.push(CurrentEpisode);
         CurrentSeason.rusicals++;
       }
-      else if(((getRandomInt(0,100)>=70 && CurrentSeason.currentCast.length == 9) || (getRandomInt(0,100)>=40 && CurrentSeason.currentCast.length == 9) || (CurrentSeason.currentCast.length == 7))  && CurrentSeason.snatchgame == 0)
+      else if(!forcedChallengeHandled && ((getRandomInt(0,100)>=70 && CurrentSeason.currentCast.length == 9) || (getRandomInt(0,100)>=40 && CurrentSeason.currentCast.length == 9) || (CurrentSeason.currentCast.length == 7))  && CurrentSeason.snatchgame == 0)
       {
         CurrentChallenge = new SnatchGame();
         CurrentEpisode = new Episode(CurrentChallenge.episodename, "Snatch Game");
         CurrentSeason.episodes.push(CurrentEpisode);
         CurrentSeason.snatchgame++;
       }
-      else if( ((getRandomInt(0,100)>=90 && CurrentSeason.currentCast.length == 8) || (getRandomInt(0,100)>=60 && CurrentSeason.currentCast.length == 6) || (getRandomInt(0,100)>=20 && CurrentSeason.currentCast.length == 5) || (CurrentSeason.currentCast.length == 4))  && CurrentSeason.makeoverchallenges == 0)
+      else if(!forcedChallengeHandled && ((getRandomInt(0,100)>=90 && CurrentSeason.currentCast.length == 8) || (getRandomInt(0,100)>=60 && CurrentSeason.currentCast.length == 6) || (getRandomInt(0,100)>=20 && CurrentSeason.currentCast.length == 5) || (CurrentSeason.currentCast.length == 4))  && CurrentSeason.makeoverchallenges == 0)
       {
         CurrentChallenge = new Makeover();
         CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Makeover");
         CurrentSeason.episodes.push(CurrentEpisode);
         CurrentSeason.makeoverchallenges++;
       }
-      else if(getRandomInt(0,100)>=85 && CurrentSeason.balls <2)
+      else if(!forcedChallengeHandled && getRandomInt(0,100)>=85 && CurrentSeason.balls <2)
       {
         CurrentChallenge = new Ball();
         CurrentEpisode = new Episode(CurrentChallenge.balls[CurrentChallenge.chosen][0], "Ball");
@@ -13481,105 +13496,32 @@ function ChallengeAnnouncement(){
       }
       else
       {
-        // Check if user selected a challenge type
-        let challengeToUse = userSelectedChallenge || getRandomInt(0,6);
-
-        // If user selected specific challenge type, convert to switch case
-        if(userSelectedChallenge) {
-          switch(userSelectedChallenge) {
-            case 'design': challengeToUse = 0; break;
-            case 'acting': challengeToUse = 1; break;
-            case 'improv': challengeToUse = 2; break;
-            case 'comedy': challengeToUse = 3; break;
-            case 'dance': challengeToUse = 4; break;
-            case 'commercial': challengeToUse = 5; break;
-            case 'branding': challengeToUse = 6; break;
-            case 'ball': challengeToUse = 'ball'; break;
-            case 'rusical': challengeToUse = 'rusical'; break;
-            case 'rumix': challengeToUse = 'rumix'; break;
-            case 'talent': challengeToUse = 'talent'; break;
-            case 'snatch': challengeToUse = 'snatch'; break;
-            case 'makeover': challengeToUse = 'makeover'; break;
-          }
-        }
-
-        if(challengeToUse === 'ball') {
-          CurrentChallenge = new Ball();
-          CurrentEpisode = new Episode(CurrentChallenge.balls[CurrentChallenge.chosen][0], "Ball");
-          CurrentSeason.episodes.push(CurrentEpisode);
-          CurrentSeason.balls++;
-        } else if(challengeToUse === 'rusical') {
-          CurrentChallenge = new Rusical();
-          while(CurrentChallenge.castsizes[CurrentChallenge.chosen] != CurrentSeason.currentCast.length)
-          {
-            CurrentChallenge.Reset();
-          }
-          CurrentEpisode = new Episode(CurrentChallenge.regrusical[CurrentChallenge.chosen], "Rusical");
-          CurrentSeason.episodes.push(CurrentEpisode);
-          CurrentSeason.rusicals++;
-        } else if(challengeToUse === 'rumix') {
-          CurrentChallenge = new Rumix();
-          CurrentEpisode = new Episode(CurrentChallenge.episodename, "Rumix");
-          CurrentSeason.episodes.push(CurrentEpisode);
-        } else if(challengeToUse === 'talent') {
-          CurrentChallenge = new TalentShow();
-          CurrentEpisode = new Episode(CurrentChallenge.episodename, "Talent Show");
-          CurrentSeason.episodes.push(CurrentEpisode);
-        } else if(challengeToUse === 'snatch') {
-          CurrentChallenge = new SnatchGame();
-          CurrentEpisode = new Episode(CurrentChallenge.episodename, "Snatch Game");
-          CurrentSeason.episodes.push(CurrentEpisode);
-          CurrentSeason.snatchgame++;
-        } else if(challengeToUse === 'makeover') {
-          CurrentChallenge = new Makeover();
-          CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Makeover");
-          CurrentSeason.episodes.push(CurrentEpisode);
-          CurrentSeason.makeoverchallenges++;
-        } else {
+        if(!forcedChallengeHandled)
+        {
+          let challengeToUse = getRandomInt(0,6);
           switch(challengeToUse)
           {
             case 0:
-              CurrentChallenge = new DesignChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Design");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.designchallenges++;
+              applySelectedChallenge('design');
               break;
 
             case 1:
-              CurrentChallenge = new ActingChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.plays[CurrentChallenge.chosen], "Acting");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.actingchallenges++;
+              applySelectedChallenge('acting');
               break;
             case 2:
-              CurrentChallenge = new ImprovChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Improvisation");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.improvchallenges++;
+              applySelectedChallenge('improv');
               break;
             case 3:
-              CurrentChallenge = new ComedyChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Comedy");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.standupchallenges++;
+              applySelectedChallenge('comedy');
               break;
             case 4:
-              CurrentChallenge = new ChoreographyChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Choreography");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.choreochallenges++;
+              applySelectedChallenge('dance');
               break;
             case 5:
-              CurrentChallenge = new CommercialChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Commercial");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.commercialchallenges++;
+              applySelectedChallenge('commercial');
               break;
             case 6:
-              CurrentChallenge = new BrandingChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Branding");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.commercialchallenges++;
+              applySelectedChallenge('branding');
               break;
           }
         }
@@ -13587,6 +13529,101 @@ function ChallengeAnnouncement(){
       CurrentChallenge.createMessage();
       Announcement.createButton("Proceed","LaunchMiniChallenge()");
     }
+  }
+}
+
+function applySelectedChallenge(choice)
+{
+  if(!choice)
+  {
+    return false;
+  }
+
+  let normalized = choice.toString().trim().toLowerCase();
+  switch(normalized)
+  {
+    case 'design':
+      CurrentChallenge = new DesignChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Design");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.designchallenges++;
+      return true;
+    case 'acting':
+      CurrentChallenge = new ActingChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.plays[CurrentChallenge.chosen], "Acting");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.actingchallenges++;
+      return true;
+    case 'improv':
+      CurrentChallenge = new ImprovChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Improvisation");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.improvchallenges++;
+      return true;
+    case 'comedy':
+      CurrentChallenge = new ComedyChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Comedy");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.standupchallenges++;
+      return true;
+    case 'dance':
+      CurrentChallenge = new ChoreographyChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Choreography");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.choreochallenges++;
+      return true;
+    case 'commercial':
+      CurrentChallenge = new CommercialChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Commercial");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.commercialchallenges++;
+      return true;
+    case 'branding':
+      CurrentChallenge = new BrandingChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Branding");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.commercialchallenges++;
+      return true;
+    case 'ball':
+      CurrentChallenge = new Ball();
+      CurrentEpisode = new Episode(CurrentChallenge.balls[CurrentChallenge.chosen][0], "Ball");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.balls++;
+      return true;
+    case 'rusical':
+      CurrentChallenge = new Rusical();
+      while(CurrentChallenge.castsizes[CurrentChallenge.chosen] != CurrentSeason.currentCast.length)
+      {
+        CurrentChallenge.Reset();
+      }
+      CurrentEpisode = new Episode(CurrentChallenge.regrusical[CurrentChallenge.chosen], "Rusical");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.rusicals++;
+      return true;
+    case 'rumix':
+      CurrentChallenge = new Rumix();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Rumix");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      return true;
+    case 'talent':
+      CurrentChallenge = new TalentShow();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Talent Show");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      return true;
+    case 'snatch':
+      CurrentChallenge = new SnatchGame();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Snatch Game");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.snatchgame++;
+      return true;
+    case 'makeover':
+      CurrentChallenge = new Makeover();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Makeover");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.makeoverchallenges++;
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -14294,6 +14331,85 @@ function getRiggingOutcomePlacement(episodeIndex, queen)
   return "";
 }
 
+const riggingPlacementSortOrder = {
+  "WIN": 0,
+  "DOUBLEWIN": 0,
+  "TOP2": 1,
+  "HIGH": 2,
+  "SAFE": 3,
+  "LOW": 4,
+  "BOTTOM": 5,
+  "ELIMINATED": 6,
+  "": 7
+};
+
+function getRiggingPredictedPlacement(episodeIndex, queen)
+{
+  let outcome = getRiggingOutcome(episodeIndex);
+  if(outcome && outcome.originalPlacements && outcome.originalPlacements.has(queen))
+  {
+    return outcome.originalPlacements.get(queen);
+  }
+
+  if(queen && queen.trackrecord && queen.trackrecord.length > episodeIndex)
+  {
+    return queen.trackrecord[episodeIndex] || "";
+  }
+
+  return "";
+}
+
+function getRiggingSortPlacement(episodeIndex, queen)
+{
+  let placement = getRiggingOutcomePlacement(episodeIndex, queen);
+  if(placement == null || placement.toString().trim() === "")
+  {
+    placement = getRiggingPredictedPlacement(episodeIndex, queen);
+  }
+
+  return normalizePlacementValue(placement);
+}
+
+function compareRiggingQueens(episodeIndex, queenA, queenB)
+{
+  let placementA = getRiggingSortPlacement(episodeIndex, queenA);
+  let placementB = getRiggingSortPlacement(episodeIndex, queenB);
+
+  let scoreA = Object.prototype.hasOwnProperty.call(riggingPlacementSortOrder, placementA) ? riggingPlacementSortOrder[placementA] : 8;
+  let scoreB = Object.prototype.hasOwnProperty.call(riggingPlacementSortOrder, placementB) ? riggingPlacementSortOrder[placementB] : 8;
+
+  if(scoreA !== scoreB)
+  {
+    return scoreA - scoreB;
+  }
+
+  let nameA = queenA && typeof queenA.GetName === "function" ? queenA.GetName().toUpperCase() : "";
+  let nameB = queenB && typeof queenB.GetName === "function" ? queenB.GetName().toUpperCase() : "";
+
+  if(nameA < nameB)
+  {
+    return -1;
+  }
+  if(nameA > nameB)
+  {
+    return 1;
+  }
+
+  return 0;
+}
+
+function resetRiggingOutcomePlacements(episodeIndex)
+{
+  let outcome = getRiggingOutcome(episodeIndex);
+  if(!outcome || !outcome.originalPlacements)
+  {
+    return;
+  }
+
+  outcome.placements = new Map(outcome.originalPlacements);
+  harmonizeRiggingLipSyncResults(outcome);
+}
+
 function calculateRiggingLipsyncScore(queen)
 {
   if(!queen)
@@ -14341,7 +14457,8 @@ function generateDoublePremiereOutcome(episodeIndex)
   let outcome = {
     type: "DOUBLE_PREMIERE",
     lipSyncResults: results,
-    placements: new Map()
+    placements: new Map(),
+    originalPlacements: new Map()
   };
 
   if(results[0] && results[0].queen)
@@ -14353,6 +14470,8 @@ function generateDoublePremiereOutcome(episodeIndex)
   {
     outcome.placements.set(results[1].queen, "TOP2");
   }
+
+  outcome.originalPlacements = new Map(outcome.placements);
 
   return outcome;
 }
@@ -14549,6 +14668,8 @@ function generateStandardRiggingOutcome(episodeIndex)
     harmonizeRiggingLipSyncResults(outcome);
   }
 
+  outcome.originalPlacements = new Map(outcome.placements);
+
   return outcome;
 }
 
@@ -14616,6 +14737,11 @@ function applyStoredLipsyncScores(episodeIndex)
 function prepareRiggingForEpisode(episodeIndex)
 {
   if(episodeIndex == null || episodeIndex < 0)
+  {
+    return false;
+  }
+
+  if(CurrentSeason && CurrentSeason.premiereformat === "DOUBLE" && episodeIndex < 2)
   {
     return false;
   }
@@ -14719,6 +14845,8 @@ function Rigging()
   let grid = document.createElement("div");
   grid.setAttribute("style","display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; padding: 10px 0; align-items: stretch;");
 
+  riggingQueens.sort((a, b) => compareRiggingQueens(riggingEpisodeIndex, a, b));
+
   for (let index = 0; index < riggingQueens.length; index++)
   {
     let queen = riggingQueens[index];
@@ -14779,13 +14907,18 @@ function Rigging()
       card.appendChild(historyRow);
     }
 
-    let currentPlacement = queen.trackrecord[riggingEpisodeIndex] || "";
+    let predictedPlacement = getRiggingPredictedPlacement(riggingEpisodeIndex, queen) || "";
+    let currentPlacement = predictedPlacement;
     if(currentPlacement === "")
     {
-      let predictedPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen);
-      if(predictedPlacement && predictedPlacement !== "")
+      let trackValue = queen.trackrecord && queen.trackrecord.length > riggingEpisodeIndex ? queen.trackrecord[riggingEpisodeIndex] : "";
+      if(trackValue && trackValue !== "")
       {
-        currentPlacement = predictedPlacement;
+        currentPlacement = trackValue;
+      }
+      else
+      {
+        currentPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
       }
     }
     let currentWrapper = document.createElement("div");
@@ -14811,17 +14944,17 @@ function Rigging()
     select.setAttribute("data-rigging-index", index);
     select.setAttribute("style","padding: 8px 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.12); color: #ffffff; text-align: center; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; width: 100%; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);");
 
-      const options = [
-        {value: 'NONE', label: 'No placement (absent)'},
-        {value: 'WIN', label: 'WIN'},
-        {value: 'DOUBLEWIN', label: 'DOUBLE WIN'},
-        {value: 'TOP2', label: 'TOP 2'},
-        {value: 'HIGH', label: 'HIGH'},
-        {value: 'SAFE', label: 'SAFE'},
-        {value: 'LOW', label: 'LOW'},
-        {value: 'BOTTOM', label: 'BOTTOM'},
-        {value: 'ELIMINATED', label: 'ELIMINATED'}
-      ];
+    const options = [
+      {value: 'WIN', label: 'WIN'},
+      {value: 'DOUBLEWIN', label: 'DOUBLE WIN'},
+      {value: 'TOP2', label: 'TOP 2'},
+      {value: 'HIGH', label: 'HIGH'},
+      {value: 'SAFE', label: 'SAFE'},
+      {value: 'LOW', label: 'LOW'},
+      {value: 'BOTTOM', label: 'BOTTOM'},
+      {value: 'ELIMINATED', label: 'ELIMINATED'},
+      {value: 'NONE', label: 'Not in episode'}
+    ];
 
     options.forEach(option => {
       let opt = document.createElement("option");
@@ -14830,23 +14963,55 @@ function Rigging()
       select.appendChild(opt);
     });
 
-    let normalizedCurrent = normalizePlacementValue(currentPlacement);
-    if(currentPlacement === "" || normalizedCurrent === "")
+    let riggedPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
+    let normalizedRigged = normalizePlacementValue(riggedPlacement);
+    if(riggedPlacement === "" || normalizedRigged === "")
     {
       select.value = 'NONE';
     }
-    else if(options.some(opt => opt.value === normalizedCurrent))
+    else if(options.some(opt => opt.value === normalizedRigged))
     {
-      select.value = normalizedCurrent;
+      select.value = normalizedRigged;
     }
-    else if(options.some(opt => opt.value === currentPlacement))
+    else if(options.some(opt => opt.value === riggedPlacement))
     {
-      select.value = currentPlacement;
+      select.value = riggedPlacement;
     }
     else
     {
       select.value = 'NONE';
     }
+
+    select.addEventListener("change", event => {
+      let queenRef = riggingQueens[index];
+      if(!queenRef)
+      {
+        return;
+      }
+
+      let newPlacement = event.target.value === 'NONE' ? "" : event.target.value;
+      let previousPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queenRef) || "";
+      if(previousPlacement === newPlacement)
+      {
+        return;
+      }
+
+      setRiggingOutcomePlacement(riggingEpisodeIndex, queenRef, newPlacement);
+      harmonizeRiggingLipSyncResults(getRiggingOutcome(riggingEpisodeIndex));
+
+      if(typeof window !== "undefined" && typeof window.requestAnimationFrame === "function")
+      {
+        window.requestAnimationFrame(() => {
+          Rigging();
+        });
+      }
+      else
+      {
+        setTimeout(() => {
+          Rigging();
+        }, 0);
+      }
+    });
 
     card.appendChild(select);
     grid.appendChild(card);
@@ -14932,6 +15097,7 @@ function SkipRigging()
   }
 
   let completedEpisodeIndex = riggingEpisodeIndex;
+  resetRiggingOutcomePlacements(completedEpisodeIndex);
   riggingQueens = [];
   riggingEpisodeIndex = null;
   riggingLastEpisodeIndex = completedEpisodeIndex;
