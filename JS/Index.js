@@ -80,6 +80,14 @@ let starscount = [];
 
 
 
+let riggingQueens = [];
+let riggingEpisodeIndex = null;
+let riggingLastEpisodeIndex = -1;
+let riggingActive = false;
+let riggingReturnCallback = null;
+let riggingEpisodeOutcomes = {};
+
+
 let reads = [
   ", you\'re so old you\'re still on MySpace.com.",
   "Sweetie, I\'m sorry! If you don\'t have a wrist band you can\'t be in here for the meet and greet!"
@@ -947,8 +955,26 @@ class Screen {
           thq.innerHTML = "Runway Stat";
           break;
         case 7:
+        {
+          let episodeIndex = CurrentSeason.episodes.length - 1;
+          let riggingOutcome = getRiggingOutcome(episodeIndex);
+          let forceDoubleShantay = riggingOutcome && riggingOutcome.forcedDoubleShantay === true;
+          let forceDoubleSashay = riggingOutcome && riggingOutcome.forcedDoubleSashay === true;
+          let forcedEliminations = riggingOutcome && Array.isArray(riggingOutcome.forcedEliminations) ? riggingOutcome.forcedEliminations.slice() : [];
+          if(forcedEliminations.length > 0)
+          {
+            forcedEliminations.forEach(forcedQueen => {
+              let forcedIndex = BottomQueens.indexOf(forcedQueen);
+              if(forcedIndex !== -1 && forcedIndex !== BottomQueens.length - 1)
+              {
+                BottomQueens.splice(forcedIndex, 1);
+                BottomQueens.push(forcedQueen);
+              }
+            });
+          }
           thq.innerHTML = "Lipsync Stat";
           break;
+        }
         case 8:
           thq.innerHTML = "Branding Stat";
           break;
@@ -1389,7 +1415,6 @@ class Screen {
     this.MainScreen.append(br);
   }
 
-
   createTrackRecords(){
     let putincenter = document.createElement("center");
     let table = document.createElement("table");
@@ -1421,8 +1446,16 @@ class Screen {
     for(let i = 0; i < CurrentSeason.episodes.length; i++)
     {
       let thep = document.createElement("th");
-      thep.innerHTML = "<p style='font-size:13px;'>"+CurrentSeason.episodes[i].name+"</p><p style='font-size:10px;'>("+CurrentSeason.episodes[i].type+")</p>";
+      let episode = CurrentSeason.episodes[i];
+      let episodeType = episode && episode.type ? episode.type.toString().trim() : "";
+      if(episodeType === "")
+      {
+        episodeType = "EP " + (i + 1);
+      }
+      let typeLabel = episodeType.toUpperCase();
+      thep.innerHTML = `<span style="display: block; font-size: 12px; letter-spacing: 0.08em;">${typeLabel}</span>`;
       thep.setAttribute("class","tr");
+      thep.setAttribute("style","width: 72px; min-width: 72px; max-width: 72px; text-align: center;");
       treps.append(thep);
     }
 
@@ -1454,138 +1487,30 @@ class Screen {
       {
         let trtr = document.createElement("td");
 
-        trtr.innerHTML = CurrentSeason.currentCast[q].trackrecord[t];
-
-        switch(CurrentSeason.currentCast[q].trackrecord[t])
+        let placementValue = CurrentSeason.currentCast[q].trackrecord[t];
+        if(placementValue == null)
         {
-          case "L3RD":
-            trtr.innerHTML = "LOST <br> 3RD ROUND";
-            trtr.setAttribute("style","background: #FFD100; font-weight: bold;");
-            break;
-          
-          case "L2RD":
-            trtr.innerHTML = "LOST <br> 2ND ROUND";
-            trtr.setAttribute("style","background: #FFAE00; font-weight: bold;");
-            break;
-          
-          case "L1RD":
-            trtr.innerHTML = "LOST <br> 1ST ROUND";
-            trtr.setAttribute("style","background: #FF7C00; font-weight: bold;");
-            break;
-
-          case "ELIM ":
-            trtr.innerHTML = "ELIMINATED";
-            trtr.setAttribute("style","background: sienna; font-weight: bold;");
-            break;
-
-          case "GUEST":
-            trtr.setAttribute("style","background: gainsboro; font-weight: bold;");
-            break;
-
-          case "WINNER":
-            trtr.setAttribute("style","background: yellow; font-weight: bold;");
-            break;
-            
-          case "RUNNER UP":
-            trtr.setAttribute("style","background: silver; font-weight: bold;");
-            break;
-
-          case "TOP 2":
-            trtr.setAttribute("style","background: lightgreen; font-weight: bold;");
-            break;
-
-          case "TOP2":
-            trtr.innerHTML = "WIN";
-            trtr.setAttribute("style","background: deepskyblue; font-weight: bold;");
-            break;
-
-          case "TOP 3":
-            
-            trtr.setAttribute("style","background: lightgreen; font-weight: bold;");
-            break;
-
-          case "TOP 4":
-            trtr.setAttribute("style","background: lightgreen; font-weight: bold;");
-            break;
-
-          case "WIN":
-            trtr.setAttribute("style","background: royalblue; font-weight: bold; color: white;");
-            break;
-          
-          case "HIGH":
-            trtr.setAttribute("style","background: lightblue");
-            break;
-          
-          case "HIGH+BLOCK":
-            trtr.innerHTML = "HIGH <br> + <br> <b>BLOCK</b>";
-            trtr.setAttribute("style","background: #D66D73");
-            break;
-
-          case "BLOCK":
-            trtr.innerHTML = "<b>BLOCK</b>";
-            trtr.setAttribute("style","background: red");
-            break;
-          
-          case "SAFE":
-            trtr.setAttribute("style","background: #F5EBF5;");
-            break;
-
-          case "LOW":
-            trtr.setAttribute("style","background: lightpink");
-            break;
-
-          case "BOTTOM":
-            trtr.setAttribute("style","background: tomato");
-            break;
-
-          case "ELIMINATED":
-            trtr.setAttribute("style","background: red; font-weight: bold;");
-            break;
-          
-          case "DOUBLEWIN":
-            trtr.innerHTML = "WIN";
-            trtr.setAttribute("style","background: darkblue; font-weight: bold; color: white;");
-            break;
-
-          default:
-            trtr.setAttribute("style","background: #A9A9A9");
-            break;
+          placementValue = "";
         }
 
-        if(CurrentSeason.currentCast[q].miniwon.indexOf(t+1)!=-1)
-        {
-          trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
-        }
+        let trimmedPlacement = applyTrackRecordPlacementStyle(trtr, placementValue);
 
-        if(CurrentSeason.currentCast[q].immune.indexOf(t+1)!=-1)
+        if(trimmedPlacement !== "")
         {
-          trtr.setAttribute("style","background: magenta");
-        }
+          if(CurrentSeason.currentCast[q].miniwon.indexOf(t+1)!=-1)
+          {
+            trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
+          }
 
-        trtr.setAttribute("class","tr");
+          if(CurrentSeason.currentCast[q].immune.indexOf(t+1)!=-1)
+          {
+            trtr.style.background = "magenta";
+            trtr.style.color = "#000000";
+            trtr.style.fontWeight = "bold";
+          }
+        }
 
         track.append(trtr);
-      }
-
-      if(CurrentSeason.lipsyncformat=="AS7")
-      {
-        let star = document.createElement("td");
-
-        star.innerHTML = CurrentSeason.currentCast[q].stars;
-
-        star.setAttribute("class","trq");
-
-        track.append(star);
-      }
-      else
-      {
-        let star = document.createElement("td");
-
-        star.innerHTML = parseFloat((CurrentSeason.currentCast[q].ppe/CurrentSeason.currentCast[q].episodeson)).toFixed(2);
-
-        star.setAttribute("class","trq");
-
-        track.append(star);
       }
 
       tbody.append(track);
@@ -1624,131 +1549,31 @@ class Screen {
       {
         let trtr = document.createElement("td");
 
-        trtr.innerHTML = CurrentSeason.eliminatedCast[q].trackrecord[t];
-
-        switch(CurrentSeason.eliminatedCast[q].trackrecord[t])
+        let placementValue = CurrentSeason.eliminatedCast[q].trackrecord[t];
+        if(placementValue == null)
         {
-          case "L3RD":
-            trtr.innerHTML = "LOST <br> 3RD ROUND";
-            trtr.setAttribute("style","background: #FFD100; font-weight: bold; ");
-            break;
-          
-          case "L2RD":
-            trtr.innerHTML = "LOST <br> 2ND ROUND";
-            trtr.setAttribute("style","background: #FFAE00; font-weight: bold; ");
-            break;
-          
-          case "L1RD":
-            trtr.innerHTML = "LOST <br> 1ST ROUND";
-            trtr.setAttribute("style","background: #FF7C00; font-weight: bold; ");
-            break;
-
-          case "ELIM ":
-            trtr.innerHTML = "ELIMINATED";
-            trtr.setAttribute("style","background: sienna; font-weight: bold; color: white;");
-            break;
-
-          case "GUEST":
-            trtr.setAttribute("style","background: gainsboro; font-weight: bold;");
-            break;
-
-          case "WINNER":
-            trtr.setAttribute("style","background: yellow; font-weight: bold;");
-            break;
-            
-          case "RUNNER UP":
-            trtr.setAttribute("style","background: silver; font-weight: bold;");
-            break;
-
-          case "TOP 2":
-            trtr.setAttribute("style","background: lightgreen; font-weight: bold;");
-            break;
-
-          case "TOP2":
-            trtr.innerHTML = "WIN";
-            trtr.setAttribute("style","background: deepskyblue; font-weight: bold;");
-            break;
-
-          case "TOP 3":
-            trtr.setAttribute("style","background: lightgreen; font-weight: bold;");
-            break;
-
-          case "MISS CONGENIALITY":
-            trtr.setAttribute("style","background: aqua; color: font-weight: bold;");
-            break;
-
-          case "TOP 4":
-            trtr.setAttribute("style","background: lightgreen; font-weight: bold;");
-            break;
-
-
-          case "WIN":
-            trtr.setAttribute("style","background: royalblue; font-weight: bold; color: white;");
-            break;
-          
-          case "HIGH":
-            trtr.setAttribute("style","background: lightblue");
-            break;
-          
-          case "HIGH+BLOCK":
-            trtr.innerHTML = "HIGH <br> + <br> <b>BLOCK</b>";
-            trtr.setAttribute("style","background: #D66D73");
-            break;
-
-          case "BLOCK":
-            trtr.innerHTML = "<b>BLOCK</b>";
-            trtr.setAttribute("style","background: red");
-            break;
-          
-          case "SAFE":
-            trtr.setAttribute("style","background: #F5EBF5;");
-            break;
-
-          case "LOW":
-            trtr.setAttribute("style","background: lightpink");
-            break;
-
-          case "BOTTOM":
-            trtr.setAttribute("style","background: tomato");
-            break;
-
-          case "ELIMINATED":
-            trtr.setAttribute("style","background: red; font-weight: bold;");
-            break;
-          
-          case "DOUBLEWIN":
-            trtr.innerHTML = "WIN";
-            trtr.setAttribute("style","background: darkblue; font-weight: bold; color: white;");
-            break;
-
-          default:
-            trtr.setAttribute("style","background: #A9A9A9");
-            break;
+          placementValue = "";
         }
 
-        trtr.setAttribute("class","tr");
+        let trimmedPlacement = applyTrackRecordPlacementStyle(trtr, placementValue);
 
-        if(CurrentSeason.eliminatedCast[q].miniwon.indexOf(t+1)!=-1)
+        if(trimmedPlacement !== "")
         {
-          trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
+          if(CurrentSeason.eliminatedCast[q].miniwon.indexOf(t+1)!=-1)
+          {
+            trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
+          }
+
+          if(CurrentSeason.eliminatedCast[q].immune.indexOf(t+1)!=-1)
+          {
+            trtr.style.background = "magenta";
+            trtr.style.color = "#000000";
+            trtr.style.fontWeight = "bold";
+          }
         }
 
-        if(CurrentSeason.eliminatedCast[q].immune.indexOf(t+1)!=-1)
-        {
-          trtr.setAttribute("style","background: magenta");
-        }
-        
         track.append(trtr);
-
-        
       }
-        let star = document.createElement("td");
-
-        star.innerHTML = parseFloat((CurrentSeason.eliminatedCast[q].ppe/CurrentSeason.eliminatedCast[q].episodeson)).toFixed(2);
-
-        star.setAttribute("class","trq");
-
-        track.append(star);
 
       tbody.append(track);
     }
@@ -2406,12 +2231,12 @@ class SnatchGame{
     this.chosen = getRandomInt(0,this.snatch.length-1);
 
     this.episodename = "";
-    switch(this.chosen)
-    {
-      case 0:
-        this.episodename = "The Snatch Game";
-        break;
-      case 1:
+      switch(this.chosen)
+      {
+        case 0:
+          this.episodename = "The Snatch Game";
+          break;
+        case 1:
         this.episodename = "S.S. Sickening!";
         break;
       case 2:
@@ -9286,6 +9111,18 @@ let DragRaceQueens = [
 
 function WhoGetsCritiques()
 {
+  if(CurrentSeason.episodes.length > 0)
+  {
+    let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+    if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
+    {
+      riggingEpisodeIndex = null;
+      setRiggingReturnCallback(WhoGetsCritiques);
+      Rigging();
+      return;
+    }
+  }
+
   let Main = new Screen();
 
   let firstnames = "";
@@ -10813,6 +10650,108 @@ function Finale()
   }
   
 
+function prepareStandardJudgingGroups()
+{
+  if(organized !== 0)
+  {
+    return;
+  }
+
+  doublewin = false;
+  firstwinner = false;
+  threewayls = false;
+
+  for (let index = 0; index < Tops.length; index++)
+  {
+    let queen = Tops[index];
+    if(!queen)
+    {
+      continue;
+    }
+
+    let recordIndex = queen.trackrecord.length - 1;
+    if(recordIndex >= 0)
+    {
+      let latestPlacement = queen.trackrecord[recordIndex];
+      if(latestPlacement === "WIN" || latestPlacement === "DOUBLEWIN")
+      {
+        queen.finalscore += 15;
+      }
+      else if(latestPlacement === "BOTTOM")
+      {
+        queen.finalscore -= 15;
+      }
+    }
+  }
+
+  Tops.sort((a, b) => a.finalscore - b.finalscore);
+  Bottoms.sort((a, b) => b.finalscore - a.finalscore);
+
+  let hasThreeWayLipSync =
+    Bottoms[0] !== undefined &&
+    Bottoms[1] !== undefined &&
+    Bottoms[2] !== undefined &&
+    Bottoms[0].perfomancescore > 40 &&
+    Bottoms[1].perfomancescore > 40 &&
+    Bottoms[2].perfomancescore > 40 &&
+    CurrentSeason.currentCast.length >= 6;
+
+  if(hasThreeWayLipSync)
+  {
+    threewayls = true;
+  }
+
+  if(TopsQueens.length === 0)
+  {
+    if(Tops[0])
+    {
+      TopsQueens.push(Tops[0]);
+    }
+
+    if(Tops.length > 1 && Tops[1])
+    {
+      TopsQueens.push(Tops[1]);
+
+      if(TopsQueens[0] && TopsQueens[1] && TopsQueens[0].perfomancescore < 5 && TopsQueens[1].perfomancescore < 5)
+      {
+        doublewin = true;
+      }
+    }
+  }
+
+  if(BottomQueens.length === 0)
+  {
+    if(!threewayls)
+    {
+      if(Bottoms[0])
+      {
+        BottomQueens.push(Bottoms[0]);
+      }
+      if(Bottoms[1])
+      {
+        BottomQueens.push(Bottoms[1]);
+      }
+    }
+    else
+    {
+      if(Bottoms[0])
+      {
+        BottomQueens.push(Bottoms[0]);
+      }
+      if(Bottoms[1])
+      {
+        BottomQueens.push(Bottoms[1]);
+      }
+      if(Bottoms[2])
+      {
+        BottomQueens.push(Bottoms[2]);
+      }
+    }
+  }
+
+  organized = 1;
+}
+
 function Placements() {
   // Special handling for Double Premiere - TOP2 lipsync for WIN, 2 HIGH, rest SAFE
   if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length <= 2)
@@ -10852,68 +10791,12 @@ function Placements() {
     return;
   }
 
-  if(CurrentSeason.lipsyncformat == "LIFE")
-  {
-    if(organized==0)
+    if(CurrentSeason.lipsyncformat == "LIFE")
     {
-      let hightext = "";
-      doublewin = false;
-      firstwinner = false;
-      threewayls = false;
-
-      for (let i = 0; i < Tops.length; i++) {
-        if(Tops[i].trackrecord[Tops[i].trackrecord.length-1] == "WIN" || Tops[i].trackrecord[Tops[i].trackrecord.length-1] == "DOUBLEWIN")
-        {
-          Tops[i].finalscore += 15;
-        }
-        else if(Tops[i].trackrecord[Tops[i].trackrecord.length-1] == "BOTTOM")
-        {
-          Tops[i].finalscore += -15;
-        }
-      }
-
-      Tops.sort((a, b) => a.finalscore - b.finalscore);
-      Bottoms.sort((a, b) => b.finalscore - a.finalscore);
-
-    if( (Bottoms[0] != undefined && Bottoms[1] != undefined && Bottoms[2] != undefined ) && Bottoms[0].perfomancescore > 40 && Bottoms[1].perfomancescore > 40  && Bottoms[2].perfomancescore > 40 && CurrentSeason.currentCast.length >=6)
-    {
-      threewayls = true;
-    }
-
-    if(TopsQueens.length==0)
-    {
-      TopsQueens.push(Tops[0]);
-      if(Tops.length!=1)
+      if(organized==0)
       {
-      TopsQueens.push(Tops[1]);
-
-        if(TopsQueens[0].perfomancescore < 5 && TopsQueens[1].perfomancescore < 5)
-          {
-            doublewin = true;
-          }
-          else
-          {
-            doublewin = false;
-          }
-        }
-    }
-
-    if(BottomQueens.length==0)
-    {
-      if(threewayls==false)
-      {
-        BottomQueens.push(Bottoms[0]);
-        BottomQueens.push(Bottoms[1]);
+        prepareStandardJudgingGroups();
       }
-      else
-      {
-        BottomQueens.push(Bottoms[0]);
-        BottomQueens.push(Bottoms[1]);
-        BottomQueens.push(Bottoms[2]);
-      }
-    }
-      organized = 1;
-    }
     
 
     
@@ -11052,19 +10935,21 @@ function Placements() {
     {
       Steps = 0;
     }
-    if(Tops.length == 0 && Bottoms.length == 0)
-    {
-      Main.createButton("Proceed", "Lipsync()");
-      Steps = 0;
-      organized = 0;
+      if(Tops.length == 0 && Bottoms.length == 0)
+      {
+        Main.createButton("Proceed", "Lipsync()");
+        Steps = 0;
+        organized = 0;
+      }
+      else
+      {
+        Main.createButton("Proceed", "Placements()");
+        Main.createBigText("On The Main Stage...");
+      }
+      return;
     }
-    else
-    {
-      Main.createButton("Proceed", "Placements()");
-      Main.createBigText("On The Main Stage...");
-    }
-  }
-  else if(CurrentSeason.lipsyncformat == "AS7")
+
+  if(CurrentSeason.lipsyncformat == "AS7")
   {
     for (let i = 0; i < Tops.length; i++) {
       if(Tops[i].trackrecord[Tops[i].trackrecord.length-1] == "WIN" || Tops[i].trackrecord[Tops[i].trackrecord.length-1] == "TOP2")
@@ -11210,8 +11095,10 @@ function Placements() {
       Main.createButton("Proceed", "Placements()");
       Main.createBigText("On The Main Stage...");
     }
+    return;
   }
-  else if(CurrentSeason.lipsyncformat == "LSFYL")
+
+  if(CurrentSeason.lipsyncformat == "LSFYL")
   {
     for (let i = 0; i < Tops.length; i++) {
       if(Tops[i].trackrecord[Tops[i].trackrecord.length-1] == "WIN" || Tops[i].trackrecord[Tops[i].trackrecord.length-1] == "TOP2")
@@ -11409,6 +11296,18 @@ function Placements() {
 
 function DoublePremiereLipsync() {
   // Special lipsync for double premiere - TOP2 lipsync for the WIN, no elimination
+  if(CurrentSeason.episodes.length > 0 && !(CurrentSeason && CurrentSeason.premiereformat === "DOUBLE" && CurrentSeason.episodes.length <= 2))
+  {
+    let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+    if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
+    {
+      riggingEpisodeIndex = null;
+      setRiggingReturnCallback(DoublePremiereLipsync);
+      Rigging();
+      return;
+    }
+  }
+
   Main = new Screen();
   Main.clean();
 
@@ -11430,23 +11329,97 @@ function DoublePremiereLipsync() {
       break;
     case 2:
       Main.createBigText("The winner is...");
-      TopsQueens[0].GetLipsync();
-      TopsQueens[1].GetLipsync();
-      TopsQueens.sort((a, b) => b.lipsyncscore - a.lipsyncscore);
 
-      Main.createImage(TopsQueens[0].image, "#1741ff");
-      Main.createText(TopsQueens[0].GetName()+", CONDRAGULATIONS! You're the winner of this week's challenge.","Bold");
-      TopsQueens[0].trackrecord.push("WIN");
-      TopsQueens[0].ppe += 5;
-      TopsQueens[0].favoritism += 3;
-      TopsQueens[0].wins++;
+      let episodeIndex = CurrentSeason.episodes.length - 1;
+      let outcome = ensureRiggingOutcome(episodeIndex);
+      let storedResults = outcome && outcome.lipSyncResults && outcome.lipSyncResults.length >= 2 ? outcome.lipSyncResults.slice() : null;
 
-      Main.createImage(TopsQueens[1].image, "lightgreen");
-      Main.createText(TopsQueens[1].GetName()+", you did an amazing job. You are also safe.","Bold");
-      TopsQueens[1].trackrecord.push("TOP2");
-      TopsQueens[1].ppe += 4;
+      if(!storedResults)
+      {
+        storedResults = [];
+        let lipSyncCandidates = TopsQueens.slice(0, 2);
+        for (let idx = 0; idx < lipSyncCandidates.length; idx++)
+        {
+          let queen = lipSyncCandidates[idx];
+          queen.GetLipsync();
+          storedResults.push({queen: queen, score: queen.lipsyncscore, originalScore: queen.oglipsyncscore});
+        }
 
-      let ls = new LipsyncSong([TopsQueens[0],TopsQueens[1]], songschosen, CurrentSeason.episodes.length, 'top2win', "NONE");
+        storedResults.sort((a, b) => b.score - a.score);
+
+        if(outcome)
+        {
+          outcome.lipSyncResults = storedResults;
+        }
+        else
+        {
+          outcome = {
+            type: "DOUBLE_PREMIERE",
+            lipSyncResults: storedResults,
+            placements: new Map()
+          };
+          riggingEpisodeOutcomes[episodeIndex] = outcome;
+        }
+
+        if(outcome && outcome.placements)
+        {
+          if(storedResults[0] && storedResults[0].queen && !outcome.placements.has(storedResults[0].queen))
+          {
+            outcome.placements.set(storedResults[0].queen, "WIN");
+          }
+          if(storedResults[1] && storedResults[1].queen && !outcome.placements.has(storedResults[1].queen))
+          {
+            outcome.placements.set(storedResults[1].queen, "TOP2");
+          }
+        }
+      }
+      else
+      {
+        for (let idx = 0; idx < storedResults.length; idx++)
+        {
+          let entry = storedResults[idx];
+          entry.queen.lipsyncscore = entry.score;
+          entry.queen.oglipsyncscore = entry.originalScore;
+        }
+      }
+
+      let placementsMap = outcome && outcome.placements ? outcome.placements : new Map();
+      let lipSyncers = storedResults.map(entry => entry.queen);
+
+      let winners = lipSyncers.filter(queen => {
+        let normalized = normalizePlacementValue(placementsMap.get(queen));
+        return normalized === "WIN" || normalized === "DOUBLEWIN";
+      });
+
+      let topTwos = lipSyncers.filter(queen => {
+        let normalized = normalizePlacementValue(placementsMap.get(queen));
+        return normalized === "TOP2";
+      });
+
+      let remaining = lipSyncers.filter(queen => winners.indexOf(queen) === -1 && topTwos.indexOf(queen) === -1);
+      let announcementOrder = winners.concat(topTwos, remaining);
+      if(announcementOrder.length === 0)
+      {
+        announcementOrder = lipSyncers;
+      }
+
+      TopsQueens = announcementOrder.slice();
+
+      for (let idx = 0; idx < announcementOrder.length; idx++)
+      {
+        let queen = announcementOrder[idx];
+        let placementValue = placementsMap.get(queen);
+        if(!placementValue || placementValue === "")
+        {
+          placementValue = idx === 0 ? "WIN" : "TOP2";
+          placementsMap.set(queen, placementValue);
+        }
+
+        announceDoublePremierePlacement(queen, placementValue, episodeIndex, idx === 0);
+      }
+
+      let lsQueens = announcementOrder.slice();
+      let ls = new LipsyncSong(lsQueens, songschosen, CurrentSeason.episodes.length, 'top2win', "NONE");
       CurrentSeason.lipsyncs.push(ls);
       break;
   }
@@ -11465,6 +11438,18 @@ function DoublePremiereLipsync() {
 }
 
 function Lipsync() {
+  if(CurrentSeason.episodes.length > 0)
+  {
+    let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+    if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
+    {
+      riggingEpisodeIndex = null;
+      setRiggingReturnCallback(Lipsync);
+      Rigging();
+      return;
+    }
+  }
+
   Main = new Screen();
   Main.clean();
 
@@ -11624,16 +11609,37 @@ function Lipsync() {
         Main.createText("I have made my decisions.", 'Bold');
         break;
       case 6:
+      {
         Main.createBigText("Shantay you stay...");
+        let lifeCase6EpisodeIndex = CurrentSeason.episodes.length - 1;
+        let lifeCase6UsedStoredScores = applyStoredLipsyncScores(lifeCase6EpisodeIndex);
+        let lifeCase6Outcome = getRiggingOutcome(lifeCase6EpisodeIndex);
+        let lifeCase6ForceDoubleShantay = lifeCase6Outcome && lifeCase6Outcome.forcedDoubleShantay === true;
+        let lifeCase6ForceDoubleSashay = lifeCase6Outcome && lifeCase6Outcome.forcedDoubleSashay === true;
+        let lifeCase6ForcedEliminations = lifeCase6Outcome && Array.isArray(lifeCase6Outcome.forcedEliminations) ? lifeCase6Outcome.forcedEliminations.slice() : [];
+        if(lifeCase6ForcedEliminations.length > 0)
+        {
+          lifeCase6ForcedEliminations.forEach(forcedQueen => {
+            let forcedIndex = BottomQueens.indexOf(forcedQueen);
+            if(forcedIndex !== -1 && forcedIndex !== BottomQueens.length - 1)
+            {
+              BottomQueens.splice(forcedIndex, 1);
+              BottomQueens.push(forcedQueen);
+            }
+          });
+        }
         for(let i = 0; i < BottomQueens.length; i++)
         {
-          BottomQueens[i].GetLipsync();
+          if(!lifeCase6UsedStoredScores)
+          {
+            BottomQueens[i].GetLipsync();
+          }
           BottomQueens[i].favoritism += -4;
         }
         if(BottomQueens.length == 2)
         {
           BottomQueens.sort((a, b) => b.lipsyncscore - a.lipsyncscore);
-          if((BottomQueens[0].oglipsyncscore <= 1) && (BottomQueens[1].oglipsyncscore <= 1) && CurrentSeason.currentCast.length>6  && CurrentSeason.doubleSashay == false)
+          if((BottomQueens[0].oglipsyncscore <= 1) && (BottomQueens[1].oglipsyncscore <= 1) && CurrentSeason.currentCast.length>6  && (CurrentSeason.doubleSashay == false || lifeCase6ForceDoubleSashay))
           {
             Main.createBigText("Sashay away...");
             Main.createImage(BottomQueens[0].image, "#fa2525");
@@ -11657,7 +11663,7 @@ function Lipsync() {
         else
         {
           BottomQueens.sort((a, b) => b.lipsyncscore - a.lipsyncscore);
-          if((BottomQueens[0].oglipsyncscore <= 1) && (BottomQueens[1].oglipsyncscore <= 1) && (BottomQueens[2].oglipsyncscore <= 1) && CurrentSeason.currentCast.length>6 && CurrentSeason.doubleSashay == false)
+          if((BottomQueens[0].oglipsyncscore <= 1) && (BottomQueens[1].oglipsyncscore <= 1) && (BottomQueens[2].oglipsyncscore <= 1) && CurrentSeason.currentCast.length>6 && (CurrentSeason.doubleSashay == false || lifeCase6ForceDoubleSashay))
           {
             Main.createImage(BottomQueens[0].image, "#ff8a8a");
             Main.createImage(BottomQueens[1].image, "#ff8a8a");
@@ -11688,10 +11694,28 @@ function Lipsync() {
           }
         }
         break;
+      }
       case 7:
+      {
+        let lifeCase7EpisodeIndex = CurrentSeason.episodes.length - 1;
+        let lifeCase7Outcome = getRiggingOutcome(lifeCase7EpisodeIndex);
+        let lifeCase7ForceDoubleShantay = lifeCase7Outcome && lifeCase7Outcome.forcedDoubleShantay === true;
+        let lifeCase7ForceDoubleSashay = lifeCase7Outcome && lifeCase7Outcome.forcedDoubleSashay === true;
+        let lifeCase7ForcedEliminations = lifeCase7Outcome && Array.isArray(lifeCase7Outcome.forcedEliminations) ? lifeCase7Outcome.forcedEliminations.slice() : [];
+        if(lifeCase7ForcedEliminations.length > 0)
+        {
+          lifeCase7ForcedEliminations.forEach(forcedQueen => {
+            let forcedIndex = BottomQueens.indexOf(forcedQueen);
+            if(forcedIndex !== -1 && forcedIndex !== BottomQueens.length - 1)
+            {
+              BottomQueens.splice(forcedIndex, 1);
+              BottomQueens.push(forcedQueen);
+            }
+          });
+        }
         if(BottomQueens.length==2)
         {
-          if((BottomQueens[0].oglipsyncscore >= 12) && (BottomQueens[1].oglipsyncscore >= 12) && CurrentSeason.doubleShantay == false && CurrentSeason.currentCast.length>6)
+          if((BottomQueens[0].oglipsyncscore >= 12) && (BottomQueens[1].oglipsyncscore >= 12) && (CurrentSeason.doubleShantay == false || lifeCase7ForceDoubleShantay) && CurrentSeason.currentCast.length>6)
           {
             Main.createBigText("Shantay you also stay!");
             Main.createImage(BottomQueens[1].image, "#ff8a8a");
@@ -11704,7 +11728,7 @@ function Lipsync() {
             let ls = new LipsyncSong([BottomQueens[0],BottomQueens[1]], songschosen, CurrentSeason.episodes.length, 'btm', "NONE");
             CurrentSeason.lipsyncs.push(ls);
           }
-          else if((BottomQueens[0].oglipsyncscore <= 1) && (BottomQueens[1].oglipsyncscore <= 1) && CurrentSeason.currentCast.length>6  && CurrentSeason.doubleSashay == false)
+          else if((BottomQueens[0].oglipsyncscore <= 1) && (BottomQueens[1].oglipsyncscore <= 1) && CurrentSeason.currentCast.length>6  && (CurrentSeason.doubleSashay == false || lifeCase7ForceDoubleSashay))
           {
             Main.createImageBW(BottomQueens[0].image, "#fa2525");
             Main.createImageBW(BottomQueens[1].image, "#fa2525");
@@ -11765,7 +11789,7 @@ function Lipsync() {
         }
         else
         {
-          if((BottomQueens[0].oglipsyncscore <= 1) && (BottomQueens[1].oglipsyncscore <= 1) && (BottomQueens[2].oglipsyncscore <= 1) && CurrentSeason.currentCast.length>6 && CurrentSeason.doubleSashay == false)
+          if((BottomQueens[0].oglipsyncscore <= 1) && (BottomQueens[1].oglipsyncscore <= 1) && (BottomQueens[2].oglipsyncscore <= 1) && CurrentSeason.currentCast.length>6 && (CurrentSeason.doubleSashay == false || lifeCase7ForceDoubleSashay))
           {
             Main.createImageBW(BottomQueens[0].image, "#fa2525");
             Main.createImageBW(BottomQueens[1].image, "#fa2525");
@@ -11859,9 +11883,9 @@ function Lipsync() {
             CurrentSeason.currentCast.splice(CurrentSeason.currentCast.indexOf(BottomQueens[2]),1);
             CurrentSeason.eliminatedCast.unshift(BottomQueens[2]);
           }
-        }
         break;
-        }
+      }
+    }
     Steps++;
     if(Steps<8)
       Main.createButton("Proceed", "Lipsync()");
@@ -11870,8 +11894,10 @@ function Lipsync() {
       Main.createButton("Proceed", "GetPromoTable()");
       Steps = 0;
     }
+    return;
   }
-  else if(CurrentSeason.lipsyncformat == "AS7")
+
+  if(CurrentSeason.lipsyncformat == "AS7")
   {
     switch(Steps){
       case 0:
@@ -11940,10 +11966,28 @@ function Lipsync() {
         
         break;
       case 7:
+      {
+        let episodeIndex = CurrentSeason.episodes.length - 1;
+        let riggingOutcome = getRiggingOutcome(episodeIndex);
+        let forceDoubleShantay = riggingOutcome && riggingOutcome.forcedDoubleShantay === true;
+        let forceDoubleSashay = riggingOutcome && riggingOutcome.forcedDoubleSashay === true;
+        let forcedEliminations = riggingOutcome && Array.isArray(riggingOutcome.forcedEliminations) ? riggingOutcome.forcedEliminations.slice() : [];
+        if(forcedEliminations.length > 0)
+        {
+          forcedEliminations.forEach(forcedQueen => {
+            let forcedIndex = TopsQueens.indexOf(forcedQueen);
+            if(forcedIndex > -1 && forcedIndex !== 0)
+            {
+              TopsQueens.splice(forcedIndex, 1);
+              TopsQueens.unshift(forcedQueen);
+            }
+          });
+        }
           Main.createBigText("You are safe!");
           Main.createImage(TopsQueens[1].image, "deepskyblue");
           Main.createText(TopsQueens[1].GetName()+", my dear queen, you are safe and you may step to the back of the stage!", 'Bold');
         break;
+      }
       case 8:
         Main.createBigText("You're blocked.");
         Main.createImage(TopsQueens[0].image, "#ffff66");
@@ -11986,7 +12030,7 @@ function Lipsync() {
 
         for(let i = 0; i<CurrentSeason.currentCast.length; i++)
         {
-          
+
           if(TopsQueens[0]==CurrentSeason.currentCast[i])
           {
             CurrentSeason.currentCast[i].trackrecord.push("WIN");
@@ -12009,7 +12053,7 @@ function Lipsync() {
               CurrentSeason.currentCast[i].trackrecord.push("HIGH");
               CurrentSeason.currentCast[i].ppe += 4;
             }
-            
+
           }
           else
           {
@@ -12023,21 +12067,24 @@ function Lipsync() {
               CurrentSeason.currentCast[i].trackrecord.push("SAFE");
               CurrentSeason.currentCast[i].ppe += 4;
             }
-            
+
           }
         }
         break;
       }
-    Steps++;
-    if(Steps<10)
-      Main.createButton("Proceed", "Lipsync()");
-    else
-    {
-      Main.createButton("Proceed", "GetPromoTable()");
-      Steps = 0;
     }
-  }
-  else if(CurrentSeason.lipsyncformat == "LSFYL")
+    Steps++;
+      if(Steps<10)
+        Main.createButton("Proceed", "Lipsync()");
+      else
+      {
+        Main.createButton("Proceed", "GetPromoTable()");
+        Steps = 0;
+      }
+      return;
+    }
+
+  if(CurrentSeason.lipsyncformat == "LSFYL")
   {
     switch(Steps){
       case 0:
@@ -12176,8 +12223,9 @@ function Lipsync() {
       Main.createButton("Proceed", "GetPromoTable()");
       Steps = 0;
     }
+    }
+    return;
   }
-}
 
 function shuffle(array) {
   let currentIndex = array.length,  randomIndex;
@@ -12321,9 +12369,185 @@ function GenerateChallenge()
     }
 }
 
+function announceDoublePremierePlacement(queen, placement, episodeIndex, isPrimary)
+{
+  if(!queen)
+  {
+    return;
+  }
+
+  let normalized = placement == null ? "" : placement.toString().trim();
+  if(normalized === "")
+  {
+    normalized = isPrimary ? "WIN" : "TOP2";
+  }
+  else
+  {
+    normalized = normalized.toUpperCase();
+    if(normalized === "NONE")
+    {
+      normalized = isPrimary ? "WIN" : "TOP2";
+    }
+    else
+    {
+      normalized = normalizePlacementValue(normalized);
+      if(normalized === "")
+      {
+        normalized = isPrimary ? "WIN" : "TOP2";
+      }
+    }
+  }
+
+  switch(normalized)
+  {
+    case "WIN":
+      Main.createImage(queen.image, "#1741ff");
+      Main.createText(queen.GetName()+", CONDRAGULATIONS! You're the winner of this week's challenge.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "WIN");
+      break;
+    case "DOUBLEWIN":
+      Main.createImage(queen.image, "#1c2d8c");
+      Main.createText(queen.GetName()+", CONDRAGULATIONS! You're also walking away with a win this week.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "DOUBLEWIN");
+      break;
+    case "TOP2":
+      Main.createImage(queen.image, "lightgreen");
+      Main.createText(queen.GetName()+", you did an amazing job. You are also safe.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "TOP2");
+      break;
+    case "HIGH":
+      Main.createImage(queen.image, "#17d4ff");
+      Main.createText(queen.GetName()+", great job this week. You are safe.","");
+      setDoublePremierePlacement(queen, episodeIndex, "HIGH");
+      break;
+    case "SAFE":
+      Main.createImage(queen.image, "#8f8f8f");
+      Main.createText(queen.GetName()+", you are safe.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "SAFE");
+      break;
+    case "LOW":
+      Main.createImage(queen.image, "#f0ad4e");
+      Main.createText(queen.GetName()+", you are in the low placements this week.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "LOW");
+      break;
+    case "BOTTOM":
+      Main.createImage(queen.image, "#ff8a8a");
+      Main.createText(queen.GetName()+", I'm sorry my dear, but you're up for elimination.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, "BOTTOM");
+      break;
+    default:
+      Main.createImage(queen.image, "lightgreen");
+      Main.createText(queen.GetName()+", you are safe.","Bold");
+      setDoublePremierePlacement(queen, episodeIndex, normalized);
+      break;
+  }
+
+  setRiggingOutcomePlacement(episodeIndex, queen, normalized);
+}
+
+function setDoublePremierePlacement(queen, episodeIndex, placement)
+{
+  if(!queen)
+  {
+    return;
+  }
+
+  if(!queen.trackrecord)
+  {
+    queen.trackrecord = [];
+  }
+
+  let value = placement == null ? "" : placement.toString().trim().toUpperCase();
+  if(value === "NONE")
+  {
+    value = "";
+  }
+
+  let normalizedValue = value === "" ? "" : normalizePlacementValue(value);
+  let current = queen.trackrecord[episodeIndex];
+  if(current == null)
+  {
+    current = "";
+  }
+
+  let normalizedCurrent = current === "" ? "" : normalizePlacementValue(current);
+  if(normalizedCurrent === normalizedValue)
+  {
+    queen.trackrecord[episodeIndex] = normalizedValue;
+    return;
+  }
+
+  if(current !== "" && current != null)
+  {
+    applyPlacementDelta(queen, current, -1);
+  }
+
+  queen.trackrecord[episodeIndex] = normalizedValue;
+
+  if(normalizedValue !== "")
+  {
+    applyPlacementDelta(queen, normalizedValue, 1);
+  }
+}
+
+
+function SyncDoublePremiereTrackRecords()
+{
+  if(CurrentSeason.premiereformat != "DOUBLE")
+  {
+    return;
+  }
+
+  let expectedLength = CurrentSeason.episodes.length;
+  if(expectedLength === 0)
+  {
+    return;
+  }
+
+  const ensureLength = (queen) =>
+  {
+    if(!queen || !queen.trackrecord)
+    {
+      return;
+    }
+
+    while(queen.trackrecord.length < expectedLength)
+    {
+      queen.trackrecord.push("");
+    }
+
+    if(queen.trackrecord.length > expectedLength)
+    {
+      queen.trackrecord = queen.trackrecord.slice(0, expectedLength);
+    }
+  };
+
+  for (let index = 0; index < firstprem.length; index++)
+  {
+    ensureLength(firstprem[index]);
+  }
+
+  for (let index = 0; index < secondprem.length; index++)
+  {
+    ensureLength(secondprem[index]);
+  }
+}
+
 
 function GetPromoTable()
   {
+    if(CurrentSeason.episodes.length > 0)
+    {
+      let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+      if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
+      {
+        riggingEpisodeIndex = null;
+        setRiggingReturnCallback(GetPromoTable);
+        Rigging();
+        return;
+      }
+    }
+
     // DOUBLE PREMIERE: Ensure currentCast is correct for episode 2
     if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length == 1 && secondGroupEntrancesShown)
     {
@@ -12390,8 +12614,9 @@ function GetPromoTable()
     Main = new Screen();
     Main.createBigText("Placements");
     Main.clean();
+    SyncDoublePremiereTrackRecords();
     Main.createPromoTable();
-    
+
     if(CurrentSeason.episodes.length == 0)
     {
       Main.createButton("Proceed","Intro()");
@@ -12752,31 +12977,44 @@ function SelectChallenge(){
   Main = new Screen();
   Main.clean();
   Main.createBigText("Select This Week's Challenge");
-  Main.createText("Choose which type of challenge the queens will compete in this week:", "Bold");
+  Main.createText("Tap a challenge to set the vibe for this episode!", "Bold");
   Main.createBR();
 
   // Create challenge selection buttons
   let challengeDiv = document.createElement("div");
-  challengeDiv.setAttribute("style", "display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 20px;");
+  challengeDiv.setAttribute("style", "display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; padding: 20px; width: min(720px, 100%); margin: 0 auto;");
 
-  const challenges = [
-    {name: "Design", value: "design"},
-    {name: "Acting", value: "acting"},
-    {name: "Improv", value: "improv"},
-    {name: "Comedy/Stand-Up", value: "comedy"},
-    {name: "Dance/Choreography", value: "dance"},
-    {name: "Commercial", value: "commercial"},
-    {name: "Branding", value: "branding"},
-    {name: "Ball", value: "ball"},
-    {name: "Rusical", value: "rusical"},
-    {name: "Snatch Game", value: "snatch"},
-    {name: "Makeover", value: "makeover"}
-  ];
+  let challenges;
+  if(CurrentSeason.premiereformat == "DOUBLE" && CurrentSeason.episodes.length < 2)
+  {
+    Main.createText("For the double premiere, choose between a Talent Show or a Rumix.", "");
+    challenges = [
+      {name: "Talent Show", value: "talent", emoji: "🎤"},
+      {name: "Rumix", value: "rumix", emoji: "🎧"}
+    ];
+  }
+  else
+  {
+    challenges = [
+      {name: "Design", value: "design", emoji: "🧵"},
+      {name: "Acting", value: "acting", emoji: "🎭"},
+      {name: "Improv", value: "improv", emoji: "🎲"},
+      {name: "Comedy/Stand-Up", value: "comedy", emoji: "😂"},
+      {name: "Dance/Choreography", value: "dance", emoji: "💃"},
+      {name: "Commercial", value: "commercial", emoji: "📺"},
+      {name: "Branding", value: "branding", emoji: "✨"},
+      {name: "Ball", value: "ball", emoji: "🪩"},
+      {name: "Rusical", value: "rusical", emoji: "🎼"},
+      {name: "Snatch Game", value: "snatch", emoji: "🤡"},
+      {name: "Makeover", value: "makeover", emoji: "💄"}
+    ];
+  }
 
   challenges.forEach(challenge => {
     let btn = document.createElement("button");
-    btn.innerHTML = challenge.name;
+    btn.innerHTML = `<span style="font-size: 22px; display: block;">${challenge.emoji || "✨"}</span><span style="display: block; margin-top: 6px; font-size: 15px; letter-spacing: 0.04em;">${challenge.name}</span>`;
     btn.setAttribute("class", "button MainButton");
+    btn.setAttribute("style", "padding: 18px 14px; border-radius: 18px; background: rgba(255,255,255,0.12); color: #ffffff; font-weight: 600; text-transform: uppercase; box-shadow: 0 12px 24px rgba(0,0,0,0.25); backdrop-filter: blur(4px);");
     btn.setAttribute("onclick", `selectedChallengeType='${challenge.value}'; ChallengeAnnouncement();`);
     challengeDiv.appendChild(btn);
   });
@@ -12974,19 +13212,36 @@ function ChallengeAnnouncement(){
   }
   else if(CurrentSeason.episodes.length<=1 && CurrentSeason.premiereformat == "DOUBLE")
   {
-    CurrentChallenge = new DesignChallenge();
-    CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Design");
-    CurrentSeason.episodes.push(CurrentEpisode);
-    CurrentSeason.designchallenges++;
-
     Announcement = new Screen();
     Announcement.clean();
+
+    let doublePremiereChoice = userSelectedChallenge || 'talent';
+
+    if(doublePremiereChoice === 'rumix')
+    {
+      CurrentChallenge = new Rumix();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Rumix");
+    }
+    else
+    {
+      CurrentChallenge = new TalentShow();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Talent Show");
+    }
+
+    CurrentSeason.episodes.push(CurrentEpisode);
 
     Announcement.createRupaulAnnouncement("Welcome Queens!");
     Announcement.createRupaulAnnouncement("First Of All Let Me Give You All A Warm Welcome.");
     Announcement.createRupaulAnnouncement("You All Made It Here. You Are All The Very Best.");
+    if(doublePremiereChoice === 'rumix')
+    {
+      Announcement.createRupaulAnnouncement("For this split premiere, you'll be recording a fierce new Rumix!");
+    }
+    else
+    {
+      Announcement.createRupaulAnnouncement("Show us your talents in this spectacular premiere talent show!");
+    }
     Announcement.createRupaulAnnouncement("This week, no one will be eliminated!");
-    Announcement.createRupaulAnnouncement("Now, Let The Olympics Begin!");
     Announcement.createButton("Proceed","LaunchMiniChallenge()");
   }
   else
@@ -13038,7 +13293,13 @@ function ChallengeAnnouncement(){
     }
     else
     {
-      if( (rusicalcastsizes.indexOf(CurrentSeason.currentCast.length)!=-1 /*&& getRandomInt(0,100)>60 */) && CurrentSeason.rusicals == 0)
+      let forcedChallengeHandled = false;
+      if(userSelectedChallenge)
+      {
+        forcedChallengeHandled = applySelectedChallenge(userSelectedChallenge);
+      }
+
+      if(!forcedChallengeHandled && (rusicalcastsizes.indexOf(CurrentSeason.currentCast.length)!=-1 /*&& getRandomInt(0,100)>60 */) && CurrentSeason.rusicals == 0)
       {
         CurrentChallenge = new Rusical();
         while(CurrentChallenge.castsizes[CurrentChallenge.chosen] != CurrentSeason.currentCast.length)
@@ -13049,21 +13310,21 @@ function ChallengeAnnouncement(){
         CurrentSeason.episodes.push(CurrentEpisode);
         CurrentSeason.rusicals++;
       }
-      else if(((getRandomInt(0,100)>=70 && CurrentSeason.currentCast.length == 9) || (getRandomInt(0,100)>=40 && CurrentSeason.currentCast.length == 9) || (CurrentSeason.currentCast.length == 7))  && CurrentSeason.snatchgame == 0)
+      else if(!forcedChallengeHandled && ((getRandomInt(0,100)>=70 && CurrentSeason.currentCast.length == 9) || (getRandomInt(0,100)>=40 && CurrentSeason.currentCast.length == 9) || (CurrentSeason.currentCast.length == 7))  && CurrentSeason.snatchgame == 0)
       {
         CurrentChallenge = new SnatchGame();
         CurrentEpisode = new Episode(CurrentChallenge.episodename, "Snatch Game");
         CurrentSeason.episodes.push(CurrentEpisode);
         CurrentSeason.snatchgame++;
       }
-      else if( ((getRandomInt(0,100)>=90 && CurrentSeason.currentCast.length == 8) || (getRandomInt(0,100)>=60 && CurrentSeason.currentCast.length == 6) || (getRandomInt(0,100)>=20 && CurrentSeason.currentCast.length == 5) || (CurrentSeason.currentCast.length == 4))  && CurrentSeason.makeoverchallenges == 0)
+      else if(!forcedChallengeHandled && ((getRandomInt(0,100)>=90 && CurrentSeason.currentCast.length == 8) || (getRandomInt(0,100)>=60 && CurrentSeason.currentCast.length == 6) || (getRandomInt(0,100)>=20 && CurrentSeason.currentCast.length == 5) || (CurrentSeason.currentCast.length == 4))  && CurrentSeason.makeoverchallenges == 0)
       {
         CurrentChallenge = new Makeover();
         CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Makeover");
         CurrentSeason.episodes.push(CurrentEpisode);
         CurrentSeason.makeoverchallenges++;
       }
-      else if(getRandomInt(0,100)>=85 && CurrentSeason.balls <2)
+      else if(!forcedChallengeHandled && getRandomInt(0,100)>=85 && CurrentSeason.balls <2)
       {
         CurrentChallenge = new Ball();
         CurrentEpisode = new Episode(CurrentChallenge.balls[CurrentChallenge.chosen][0], "Ball");
@@ -13072,95 +13333,32 @@ function ChallengeAnnouncement(){
       }
       else
       {
-        // Check if user selected a challenge type
-        let challengeToUse = userSelectedChallenge || getRandomInt(0,6);
-
-        // If user selected specific challenge type, convert to switch case
-        if(userSelectedChallenge) {
-          switch(userSelectedChallenge) {
-            case 'design': challengeToUse = 0; break;
-            case 'acting': challengeToUse = 1; break;
-            case 'improv': challengeToUse = 2; break;
-            case 'comedy': challengeToUse = 3; break;
-            case 'dance': challengeToUse = 4; break;
-            case 'commercial': challengeToUse = 5; break;
-            case 'branding': challengeToUse = 6; break;
-            case 'ball': challengeToUse = 'ball'; break;
-            case 'rusical': challengeToUse = 'rusical'; break;
-            case 'snatch': challengeToUse = 'snatch'; break;
-            case 'makeover': challengeToUse = 'makeover'; break;
-          }
-        }
-
-        if(challengeToUse === 'ball') {
-          CurrentChallenge = new Ball();
-          CurrentEpisode = new Episode(CurrentChallenge.balls[CurrentChallenge.chosen][0], "Ball");
-          CurrentSeason.episodes.push(CurrentEpisode);
-          CurrentSeason.balls++;
-        } else if(challengeToUse === 'rusical') {
-          CurrentChallenge = new Rusical();
-          while(CurrentChallenge.castsizes[CurrentChallenge.chosen] != CurrentSeason.currentCast.length)
-          {
-            CurrentChallenge.Reset();
-          }
-          CurrentEpisode = new Episode(CurrentChallenge.regrusical[CurrentChallenge.chosen], "Rusical");
-          CurrentSeason.episodes.push(CurrentEpisode);
-          CurrentSeason.rusicals++;
-        } else if(challengeToUse === 'snatch') {
-          CurrentChallenge = new SnatchGame();
-          CurrentEpisode = new Episode(CurrentChallenge.episodename, "Snatch Game");
-          CurrentSeason.episodes.push(CurrentEpisode);
-          CurrentSeason.snatchgame++;
-        } else if(challengeToUse === 'makeover') {
-          CurrentChallenge = new Makeover();
-          CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Makeover");
-          CurrentSeason.episodes.push(CurrentEpisode);
-          CurrentSeason.makeoverchallenges++;
-        } else {
+        if(!forcedChallengeHandled)
+        {
+          let challengeToUse = getRandomInt(0,6);
           switch(challengeToUse)
           {
             case 0:
-              CurrentChallenge = new DesignChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Design");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.designchallenges++;
+              applySelectedChallenge('design');
               break;
 
             case 1:
-              CurrentChallenge = new ActingChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.plays[CurrentChallenge.chosen], "Acting");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.actingchallenges++;
+              applySelectedChallenge('acting');
               break;
             case 2:
-              CurrentChallenge = new ImprovChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Improvisation");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.improvchallenges++;
+              applySelectedChallenge('improv');
               break;
             case 3:
-              CurrentChallenge = new ComedyChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Comedy");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.standupchallenges++;
+              applySelectedChallenge('comedy');
               break;
             case 4:
-              CurrentChallenge = new ChoreographyChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Choreography");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.choreochallenges++;
+              applySelectedChallenge('dance');
               break;
             case 5:
-              CurrentChallenge = new CommercialChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Commercial");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.commercialchallenges++;
+              applySelectedChallenge('commercial');
               break;
             case 6:
-              CurrentChallenge = new BrandingChallenge();
-              CurrentEpisode = new Episode(CurrentChallenge.episodename, "Branding");
-              CurrentSeason.episodes.push(CurrentEpisode);
-              CurrentSeason.commercialchallenges++;
+              applySelectedChallenge('branding');
               break;
           }
         }
@@ -13168,6 +13366,101 @@ function ChallengeAnnouncement(){
       CurrentChallenge.createMessage();
       Announcement.createButton("Proceed","LaunchMiniChallenge()");
     }
+  }
+}
+
+function applySelectedChallenge(choice)
+{
+  if(!choice)
+  {
+    return false;
+  }
+
+  let normalized = choice.toString().trim().toLowerCase();
+  switch(normalized)
+  {
+    case 'design':
+      CurrentChallenge = new DesignChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Design");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.designchallenges++;
+      return true;
+    case 'acting':
+      CurrentChallenge = new ActingChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.plays[CurrentChallenge.chosen], "Acting");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.actingchallenges++;
+      return true;
+    case 'improv':
+      CurrentChallenge = new ImprovChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Improvisation");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.improvchallenges++;
+      return true;
+    case 'comedy':
+      CurrentChallenge = new ComedyChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Comedy");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.standupchallenges++;
+      return true;
+    case 'dance':
+      CurrentChallenge = new ChoreographyChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Choreography");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.choreochallenges++;
+      return true;
+    case 'commercial':
+      CurrentChallenge = new CommercialChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Commercial");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.commercialchallenges++;
+      return true;
+    case 'branding':
+      CurrentChallenge = new BrandingChallenge();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Branding");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.commercialchallenges++;
+      return true;
+    case 'ball':
+      CurrentChallenge = new Ball();
+      CurrentEpisode = new Episode(CurrentChallenge.balls[CurrentChallenge.chosen][0], "Ball");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.balls++;
+      return true;
+    case 'rusical':
+      CurrentChallenge = new Rusical();
+      while(CurrentChallenge.castsizes[CurrentChallenge.chosen] != CurrentSeason.currentCast.length)
+      {
+        CurrentChallenge.Reset();
+      }
+      CurrentEpisode = new Episode(CurrentChallenge.regrusical[CurrentChallenge.chosen], "Rusical");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.rusicals++;
+      return true;
+    case 'rumix':
+      CurrentChallenge = new Rumix();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Rumix");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      return true;
+    case 'talent':
+      CurrentChallenge = new TalentShow();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Talent Show");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      return true;
+    case 'snatch':
+      CurrentChallenge = new SnatchGame();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename, "Snatch Game");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.snatchgame++;
+      return true;
+    case 'makeover':
+      CurrentChallenge = new Makeover();
+      CurrentEpisode = new Episode(CurrentChallenge.episodename[CurrentChallenge.chosen], "Makeover");
+      CurrentSeason.episodes.push(CurrentEpisode);
+      CurrentSeason.makeoverchallenges++;
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -13588,6 +13881,1397 @@ function TrackRecords()
   }
 
   MainScreen.createButton("Download", "convertToImage()");
+}
+
+function resetTrackRecordCellStyle(cell)
+{
+  cell.setAttribute("class","tr");
+  cell.style.cssText = "";
+  cell.style.width = "72px";
+  cell.style.minWidth = "72px";
+  cell.style.maxWidth = "72px";
+  cell.style.textAlign = "center";
+  cell.style.verticalAlign = "middle";
+  cell.style.padding = "6px 4px";
+  cell.style.fontSize = "14px";
+  cell.style.lineHeight = "1.35";
+  cell.style.fontWeight = "";
+  cell.style.color = "";
+  cell.style.opacity = "";
+  cell.style.background = "";
+}
+
+function applyTrackRecordPlacementStyle(cell, placementValue)
+{
+  resetTrackRecordCellStyle(cell);
+
+  let trimmed = placementValue == null ? "" : placementValue.toString().trim();
+  if(trimmed === "")
+  {
+    cell.innerHTML = "";
+    cell.style.background = "#2f2f2f";
+    cell.style.color = "#f0f0f0";
+    cell.style.opacity = "0.85";
+    cell.style.fontWeight = "600";
+    return trimmed;
+  }
+
+  cell.innerHTML = placementValue;
+
+  switch(trimmed)
+  {
+    case "L3RD":
+      cell.innerHTML = "LOST <br> 3RD ROUND";
+      cell.style.background = "#FFD100";
+      cell.style.fontWeight = "bold";
+      break;
+
+    case "L2RD":
+      cell.innerHTML = "LOST <br> 2ND ROUND";
+      cell.style.background = "#FFAE00";
+      cell.style.fontWeight = "bold";
+      break;
+
+    case "L1RD":
+      cell.innerHTML = "LOST <br> 1ST ROUND";
+      cell.style.background = "#FF7C00";
+      cell.style.fontWeight = "bold";
+      break;
+
+    case "ELIM":
+      cell.innerHTML = "ELIMINATED";
+      cell.style.background = "sienna";
+      cell.style.fontWeight = "bold";
+      cell.style.color = "white";
+      break;
+
+    case "ELIMINATED":
+      cell.innerHTML = "ELIMINATED";
+      cell.style.background = "red";
+      cell.style.fontWeight = "bold";
+      cell.style.color = "white";
+      break;
+
+    case "GUEST":
+      cell.style.background = "gainsboro";
+      cell.style.fontWeight = "bold";
+      break;
+
+    case "WINNER":
+      cell.style.background = "yellow";
+      cell.style.fontWeight = "bold";
+      break;
+
+    case "RUNNER UP":
+      cell.style.background = "silver";
+      cell.style.fontWeight = "bold";
+      break;
+
+    case "TOP 2":
+    case "TOP2":
+      cell.innerHTML = "WIN";
+      cell.style.background = "deepskyblue";
+      cell.style.fontWeight = "bold";
+      break;
+
+    case "TOP 3":
+    case "TOP 4":
+    case "TOP 5":
+      cell.style.background = "lightgreen";
+      cell.style.fontWeight = "bold";
+      break;
+
+    case "MISS CONGENIALITY":
+      cell.style.background = "aqua";
+      cell.style.fontWeight = "bold";
+      break;
+
+    case "WIN":
+    case "DOUBLEWIN":
+      cell.style.background = "royalblue";
+      cell.style.fontWeight = "bold";
+      cell.style.color = "white";
+      cell.innerHTML = "WIN";
+      break;
+
+    case "HIGH":
+      cell.style.background = "lightblue";
+      break;
+
+    case "HIGH+BLOCK":
+      cell.innerHTML = "HIGH <br> + <br> <b>BLOCK</b>";
+      cell.style.background = "#D66D73";
+      break;
+
+    case "BLOCK":
+      cell.innerHTML = "<b>BLOCK</b>";
+      cell.style.background = "red";
+      cell.style.color = "white";
+      break;
+
+    case "SAFE":
+    case "SAFE+BLOCK":
+      cell.style.background = "#F5EBF5";
+      break;
+
+    case "LOW":
+    case "LOW+BLOCK":
+      cell.style.background = "lightpink";
+      break;
+
+    case "BOTTOM":
+    case "BTM":
+    case "BTM2":
+    case "BTM3":
+      cell.style.background = "tomato";
+      break;
+
+    case "DOUBLEWINNER":
+      cell.innerHTML = "WIN";
+      cell.style.background = "darkblue";
+      cell.style.fontWeight = "bold";
+      cell.style.color = "white";
+      break;
+
+    case "GUEST JUDGE":
+      cell.style.background = "#A9A9A9";
+      break;
+
+    default:
+      cell.style.background = "#A9A9A9";
+      break;
+  }
+
+  return trimmed;
+}
+
+function normalizePlacementValue(value)
+{
+  if(value == null)
+  {
+    return "";
+  }
+
+  let placement = value.toString().trim().toUpperCase();
+
+  switch(placement)
+  {
+    case "TOP 2":
+      return "TOP2";
+    case "HIGH+BLOCK":
+      return "HIGH";
+    case "SAFE+BLOCK":
+      return "SAFE";
+    case "LOW+BLOCK":
+      return "LOW";
+    case "WIN+BLOCK":
+      return "WIN";
+    case "ELIM":
+      return "ELIMINATED";
+    case "BTM":
+    case "BTM2":
+    case "BTM3":
+      return "BOTTOM";
+    default:
+      return placement;
+  }
+}
+
+const placementStatMap = {
+  "WIN": {ppe: 5, favoritism: 3, wins: 1},
+  "DOUBLEWIN": {ppe: 5, favoritism: 3, wins: 1},
+  "TOP2": {ppe: 4},
+  "HIGH": {ppe: 4, favoritism: 1, highs: 1},
+  "SAFE": {ppe: 3, safes: 1},
+  "LOW": {ppe: 2, favoritism: -1, lows: 1},
+  "BOTTOM": {ppe: 1, bottoms: 1}
+};
+
+function applyPlacementDelta(queen, placement, multiplier)
+{
+  let normalized = normalizePlacementValue(placement);
+  let stats = placementStatMap[normalized];
+  if(!stats)
+  {
+    return;
+  }
+
+  if(stats.ppe)
+  {
+    queen.ppe = Math.max(0, queen.ppe + (stats.ppe * multiplier));
+  }
+  if(stats.favoritism)
+  {
+    queen.favoritism += stats.favoritism * multiplier;
+  }
+  if(stats.wins)
+  {
+    queen.wins = Math.max(0, queen.wins + (stats.wins * multiplier));
+  }
+  if(stats.highs)
+  {
+    queen.highs = Math.max(0, queen.highs + (stats.highs * multiplier));
+  }
+  if(stats.safes)
+  {
+    queen.safes = Math.max(0, queen.safes + (stats.safes * multiplier));
+  }
+  if(stats.lows)
+  {
+    queen.lows = Math.max(0, queen.lows + (stats.lows * multiplier));
+  }
+  if(stats.bottoms)
+  {
+    queen.bottoms = Math.max(0, queen.bottoms + (stats.bottoms * multiplier));
+  }
+}
+
+function getPlacementBadgeConfig(rawPlacement)
+{
+  let trimmed = rawPlacement == null ? "" : rawPlacement.toString().trim();
+  if(trimmed === "")
+  {
+    return {
+      text: "—",
+      background: "#2f2f2f",
+      color: "#f0f0f0",
+      fontWeight: "600",
+      extraStyle: "opacity: 0.85;"
+    };
+  }
+
+  let upper = trimmed.toUpperCase();
+  let config = {
+    text: trimmed,
+    background: "#A9A9A9",
+    color: "#111111",
+    fontWeight: "600",
+    extraStyle: ""
+  };
+
+  switch(upper)
+  {
+    case "L3RD":
+      config.background = "#FFD100";
+      break;
+    case "L2RD":
+      config.background = "#FFAE00";
+      break;
+    case "L1RD":
+      config.background = "#FF7C00";
+      break;
+    case "ELIM":
+    case "ELIMINATED":
+      config.text = "ELIMINATED";
+      config.background = "red";
+      config.color = "#ffffff";
+      break;
+    case "GUEST":
+      config.background = "gainsboro";
+      break;
+    case "WINNER":
+      config.background = "yellow";
+      break;
+    case "RUNNER UP":
+      config.background = "silver";
+      break;
+    case "TOP 2":
+    case "TOP 3":
+    case "TOP 4":
+      config.background = "lightgreen";
+      break;
+    case "TOP2":
+      config.text = "WIN";
+      config.background = "deepskyblue";
+      break;
+    case "WIN":
+      config.background = "royalblue";
+      config.color = "#ffffff";
+      break;
+    case "DOUBLEWIN":
+      config.text = "WIN";
+      config.background = "darkblue";
+      config.color = "#ffffff";
+      break;
+    case "HIGH":
+      config.background = "lightblue";
+      break;
+    case "HIGH+BLOCK":
+      config.background = "#D66D73";
+      config.color = "#ffffff";
+      break;
+    case "BLOCK":
+      config.background = "red";
+      config.color = "#ffffff";
+      config.fontWeight = "700";
+      break;
+    case "SAFE":
+      config.background = "#F5EBF5";
+      break;
+    case "LOW":
+      config.background = "lightpink";
+      break;
+    case "BOTTOM":
+      config.background = "tomato";
+      config.color = "#ffffff";
+      break;
+    case "MISS CONGENIALITY":
+      config.background = "aqua";
+      break;
+    default:
+      break;
+  }
+
+  return config;
+}
+
+function createPlacementBadgeElement(placement, size = "small")
+{
+  let badge = document.createElement("span");
+  let config = getPlacementBadgeConfig(placement);
+  let padding = size === "large" ? "6px 12px" : "4px 8px";
+  let fontSize = size === "large" ? "14px" : "12px";
+  badge.innerHTML = config.text;
+  badge.setAttribute("style", `display: inline-block; border-radius: 8px; padding: ${padding}; font-size: ${fontSize}; background: ${config.background}; color: ${config.color}; font-weight: ${config.fontWeight}; ${config.extraStyle}`);
+  return badge;
+}
+
+function setRiggingReturnCallback(callback)
+{
+  if(typeof callback === "function")
+  {
+    riggingReturnCallback = callback;
+  }
+  else
+  {
+    riggingReturnCallback = null;
+  }
+}
+
+function invokeRiggingReturnCallback()
+{
+  let callback = riggingReturnCallback;
+  riggingReturnCallback = null;
+  if(typeof callback === "function")
+  {
+    callback();
+  }
+  else
+  {
+    GetPromoTable();
+  }
+}
+
+function getRiggingOutcome(episodeIndex)
+{
+  if(episodeIndex == null || episodeIndex < 0)
+  {
+    return null;
+  }
+
+  if(Object.prototype.hasOwnProperty.call(riggingEpisodeOutcomes, episodeIndex))
+  {
+    return riggingEpisodeOutcomes[episodeIndex];
+  }
+
+  return null;
+}
+
+  function ensureRiggingOutcome(episodeIndex)
+  {
+    let existing = getRiggingOutcome(episodeIndex);
+    if(existing)
+    {
+      return existing;
+    }
+
+    let outcome = null;
+    if(CurrentSeason && CurrentSeason.premiereformat === "DOUBLE" && episodeIndex < 2)
+    {
+      outcome = generateDoublePremiereOutcome(episodeIndex);
+    }
+
+    if(!outcome && CurrentSeason)
+    {
+      outcome = generateStandardRiggingOutcome(episodeIndex);
+    }
+
+    if(outcome)
+    {
+      riggingEpisodeOutcomes[episodeIndex] = outcome;
+    }
+
+  return outcome;
+}
+
+function setRiggingOutcomePlacement(episodeIndex, queen, placement)
+{
+  if(!queen)
+  {
+    return;
+  }
+
+  let outcome = ensureRiggingOutcome(episodeIndex);
+  if(outcome && outcome.placements)
+  {
+    let value = placement == null ? "" : placement;
+    outcome.placements.set(queen, value);
+  }
+}
+
+function getRiggingOutcomePlacement(episodeIndex, queen)
+{
+  let outcome = getRiggingOutcome(episodeIndex);
+  if(outcome && outcome.placements && outcome.placements.has(queen))
+  {
+    return outcome.placements.get(queen);
+  }
+
+  return "";
+}
+
+const riggingPlacementSortOrder = {
+  "WIN": 0,
+  "DOUBLEWIN": 0,
+  "TOP2": 1,
+  "HIGH": 2,
+  "SAFE": 3,
+  "LOW": 4,
+  "BOTTOM": 5,
+  "ELIMINATED": 6,
+  "": 7
+};
+
+function getRiggingPredictedPlacement(episodeIndex, queen)
+{
+  let outcome = getRiggingOutcome(episodeIndex);
+  if(outcome && outcome.originalPlacements && outcome.originalPlacements.has(queen))
+  {
+    return outcome.originalPlacements.get(queen);
+  }
+
+  if(queen && queen.trackrecord && queen.trackrecord.length > episodeIndex)
+  {
+    return queen.trackrecord[episodeIndex] || "";
+  }
+
+  return "";
+}
+
+function getRiggingSortPlacement(episodeIndex, queen)
+{
+  let placement = getRiggingOutcomePlacement(episodeIndex, queen);
+  if(placement == null || placement.toString().trim() === "")
+  {
+    placement = getRiggingPredictedPlacement(episodeIndex, queen);
+  }
+
+  return normalizePlacementValue(placement);
+}
+
+function compareRiggingQueens(episodeIndex, queenA, queenB)
+{
+  let placementA = getRiggingSortPlacement(episodeIndex, queenA);
+  let placementB = getRiggingSortPlacement(episodeIndex, queenB);
+
+  let scoreA = Object.prototype.hasOwnProperty.call(riggingPlacementSortOrder, placementA) ? riggingPlacementSortOrder[placementA] : 8;
+  let scoreB = Object.prototype.hasOwnProperty.call(riggingPlacementSortOrder, placementB) ? riggingPlacementSortOrder[placementB] : 8;
+
+  if(scoreA !== scoreB)
+  {
+    return scoreA - scoreB;
+  }
+
+  let nameA = queenA && typeof queenA.GetName === "function" ? queenA.GetName().toUpperCase() : "";
+  let nameB = queenB && typeof queenB.GetName === "function" ? queenB.GetName().toUpperCase() : "";
+
+  if(nameA < nameB)
+  {
+    return -1;
+  }
+  if(nameA > nameB)
+  {
+    return 1;
+  }
+
+  return 0;
+}
+
+function uniqueQueenList(list)
+{
+  let result = [];
+  let seen = new Set();
+
+  for (let index = 0; index < list.length; index++)
+  {
+    let queen = list[index];
+    if(queen && !seen.has(queen))
+    {
+      seen.add(queen);
+      result.push(queen);
+    }
+  }
+
+  return result;
+}
+
+function applyRiggingOutcomeToJudging(episodeIndex)
+{
+  if(!CurrentSeason || episodeIndex == null || episodeIndex < 0)
+  {
+    return;
+  }
+
+  let outcome = ensureRiggingOutcome(episodeIndex);
+  if(!outcome || !outcome.placements)
+  {
+    return;
+  }
+
+  let winners = [];
+  let topTwo = [];
+  let highs = [];
+  let safesGroup = [];
+  let lows = [];
+  let bottomPerformers = [];
+  let eliminated = [];
+
+  for (let index = 0; index < CurrentSeason.currentCast.length; index++)
+  {
+    let queen = CurrentSeason.currentCast[index];
+    if(!queen)
+    {
+      continue;
+    }
+
+    let placement = getRiggingOutcomePlacement(episodeIndex, queen);
+    if(!placement)
+    {
+      placement = getRiggingPredictedPlacement(episodeIndex, queen);
+    }
+
+    if(!placement && queen.trackrecord && queen.trackrecord.length > episodeIndex)
+    {
+      placement = queen.trackrecord[episodeIndex];
+    }
+
+    if(!placement)
+    {
+      placement = "";
+    }
+
+    let trimmedPlacement = placement.toString().trim();
+    if(trimmedPlacement !== "")
+    {
+      outcome.placements.set(queen, trimmedPlacement);
+    }
+
+    let normalizedPlacement = normalizePlacementValue(trimmedPlacement);
+
+    switch(normalizedPlacement)
+    {
+      case "WIN":
+      case "DOUBLEWIN":
+        winners.push(queen);
+        break;
+      case "TOP2":
+        topTwo.push(queen);
+        break;
+      case "HIGH":
+        highs.push(queen);
+        break;
+      case "SAFE":
+        safesGroup.push(queen);
+        break;
+      case "LOW":
+        lows.push(queen);
+        break;
+      case "BOTTOM":
+        bottomPerformers.push(queen);
+        break;
+      case "ELIMINATED":
+        eliminated.push(queen);
+        bottomPerformers.push(queen);
+        break;
+      default:
+        break;
+    }
+  }
+
+  winners = uniqueQueenList(winners);
+  topTwo = uniqueQueenList(topTwo);
+  highs = uniqueQueenList(highs);
+  safesGroup = uniqueQueenList(safesGroup);
+  lows = uniqueQueenList(lows);
+  bottomPerformers = uniqueQueenList(bottomPerformers);
+  eliminated = uniqueQueenList(eliminated);
+
+  winners.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+  topTwo.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+  highs.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+  safesGroup.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+  lows.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+  bottomPerformers.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+  eliminated.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+
+  doublewin = winners.length > 1;
+
+  TopsQueens = [];
+  if(winners.length > 0)
+  {
+    TopsQueens = winners.slice(0, Math.min(winners.length, 2));
+  }
+  else if(topTwo.length > 0)
+  {
+    TopsQueens = topTwo.slice(0, Math.min(topTwo.length, 2));
+  }
+
+  Tops = uniqueQueenList([...winners, ...topTwo, ...highs]);
+  Tops.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+
+  Safes = safesGroup.slice();
+  Safes.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+
+  Bottoms = uniqueQueenList([...lows, ...bottomPerformers, ...eliminated]);
+  Bottoms.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+
+  Critiqued = uniqueQueenList([...Tops, ...Bottoms]);
+  Critiqued.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+
+  BottomQueens = uniqueQueenList(bottomPerformers);
+  BottomQueens.sort((a, b) => compareRiggingQueens(episodeIndex, a, b));
+
+  let lipSyncResults = [];
+  BottomQueens.forEach(queen => {
+    let placement = getRiggingOutcomePlacement(episodeIndex, queen);
+    if(!placement)
+    {
+      placement = getRiggingPredictedPlacement(episodeIndex, queen);
+    }
+    let normalizedPlacement = normalizePlacementValue(placement);
+    let eliminatedQueen = normalizedPlacement === "ELIMINATED";
+    let score = eliminatedQueen ? -5 : 20;
+    lipSyncResults.push({queen: queen, score: score, originalScore: score});
+  });
+
+  outcome.lipSyncResults = lipSyncResults;
+  outcome.forcedEliminations = eliminated.slice();
+  outcome.forcedDoubleShantay = eliminated.length === 0 && BottomQueens.length >= 2;
+  outcome.forcedDoubleSashay = eliminated.length >= 2;
+  harmonizeRiggingLipSyncResults(outcome);
+
+  organized = 1;
+}
+
+function resetRiggingOutcomePlacements(episodeIndex)
+{
+  let outcome = getRiggingOutcome(episodeIndex);
+  if(!outcome || !outcome.originalPlacements)
+  {
+    return;
+  }
+
+  outcome.placements = new Map(outcome.originalPlacements);
+  harmonizeRiggingLipSyncResults(outcome);
+}
+
+function calculateRiggingLipsyncScore(queen)
+{
+  if(!queen)
+  {
+    return {score: 0, originalScore: 0};
+  }
+
+  let score = queen.GetScore(0, queen.lipsync, 0);
+  if(queen.animal != "")
+  {
+    score += queen.animal.lipsync;
+  }
+
+  let originalScore = score;
+  score += queen.favoritism;
+
+  return {score: score, originalScore: originalScore};
+}
+
+function generateDoublePremiereOutcome(episodeIndex)
+{
+  if(!CurrentSeason || CurrentSeason.premiereformat !== "DOUBLE")
+  {
+    return null;
+  }
+
+  if(episodeIndex == null || episodeIndex < 0 || episodeIndex >= CurrentSeason.episodes.length)
+  {
+    return null;
+  }
+
+  let lipSyncers = TopsQueens.slice(0, 2);
+  if(lipSyncers.length < 2)
+  {
+    return null;
+  }
+
+  let results = lipSyncers.map(queen => {
+    let scores = calculateRiggingLipsyncScore(queen);
+    return {queen: queen, score: scores.score, originalScore: scores.originalScore};
+  });
+
+  results.sort((a, b) => b.score - a.score);
+
+  let outcome = {
+    type: "DOUBLE_PREMIERE",
+    lipSyncResults: results,
+    placements: new Map(),
+    originalPlacements: new Map()
+  };
+
+  if(results[0] && results[0].queen)
+  {
+    outcome.placements.set(results[0].queen, "WIN");
+  }
+
+  if(results[1] && results[1].queen)
+  {
+    outcome.placements.set(results[1].queen, "TOP2");
+  }
+
+  outcome.originalPlacements = new Map(outcome.placements);
+
+  return outcome;
+}
+
+function determineStandardLipsyncPlacements(outcome, lipSyncResults)
+{
+  if(!outcome)
+  {
+    return;
+  }
+
+  let placements = outcome.placements;
+  let lipSyncers = lipSyncResults.map(result => result.queen).filter(Boolean);
+  if(lipSyncers.length === 0)
+  {
+    return;
+  }
+
+  let castLength = CurrentSeason ? CurrentSeason.currentCast.length : 0;
+  let allowSpecialOutcome = castLength > 6;
+  let doubleSashayUsed = CurrentSeason ? CurrentSeason.doubleSashay === true : false;
+  let doubleShantayUsed = CurrentSeason ? CurrentSeason.doubleShantay === true : false;
+
+  lipSyncers.forEach(queen => {
+    if(queen && !placements.has(queen))
+    {
+      placements.set(queen, "BOTTOM");
+    }
+  });
+
+  if(lipSyncers.length === 1)
+  {
+    return;
+  }
+
+  if(lipSyncers.length === 2)
+  {
+    let first = lipSyncResults[0];
+    let second = lipSyncResults[1];
+    if(!first || !second)
+    {
+      return;
+    }
+
+    if(
+      allowSpecialOutcome &&
+      !doubleShantayUsed &&
+      first.originalScore >= 12 &&
+      second.originalScore >= 12
+    )
+    {
+      outcome.doubleShantay = true;
+      return;
+    }
+
+    if(
+      allowSpecialOutcome &&
+      !doubleSashayUsed &&
+      first.originalScore <= 1 &&
+      second.originalScore <= 1
+    )
+    {
+      placements.set(first.queen, "ELIMINATED");
+      placements.set(second.queen, "ELIMINATED");
+      outcome.doubleSashay = true;
+      return;
+    }
+
+    placements.set(first.queen, placements.get(first.queen) || "BOTTOM");
+    placements.set(second.queen, "ELIMINATED");
+    return;
+  }
+
+  let first = lipSyncResults[0];
+  let second = lipSyncResults[1];
+  let third = lipSyncResults[2];
+  if(!first || !second || !third)
+  {
+    return;
+  }
+
+  if(
+    allowSpecialOutcome &&
+    !doubleSashayUsed &&
+    first.originalScore <= 1 &&
+    second.originalScore <= 1 &&
+    third.originalScore <= 1
+  )
+  {
+    placements.set(first.queen, "ELIMINATED");
+    placements.set(second.queen, "ELIMINATED");
+    placements.set(third.queen, "ELIMINATED");
+    outcome.doubleSashay = true;
+    return;
+  }
+
+  if(allowSpecialOutcome && second.score <= 7)
+  {
+    placements.set(first.queen, placements.get(first.queen) || "BOTTOM");
+    placements.set(second.queen, "ELIMINATED");
+    placements.set(third.queen, "ELIMINATED");
+    outcome.doubleSashay = true;
+    return;
+  }
+
+  placements.set(first.queen, placements.get(first.queen) || "BOTTOM");
+  placements.set(second.queen, placements.get(second.queen) || "BOTTOM");
+  placements.set(third.queen, "ELIMINATED");
+}
+
+function generateStandardRiggingOutcome(episodeIndex)
+{
+  if(!CurrentSeason || episodeIndex == null || episodeIndex < 0)
+  {
+    return null;
+  }
+
+  prepareStandardJudgingGroups();
+
+  let outcome = {
+    type: "STANDARD",
+    placements: new Map(),
+    lipSyncResults: [],
+    doubleShantay: false,
+    doubleSashay: false
+  };
+
+  Safes.forEach(queen => {
+    if(queen)
+    {
+      outcome.placements.set(queen, "SAFE");
+    }
+  });
+
+  let winnerSet = new Set();
+  if(TopsQueens[0])
+  {
+    winnerSet.add(TopsQueens[0]);
+  }
+  if(doublewin && TopsQueens[1])
+  {
+    winnerSet.add(TopsQueens[1]);
+  }
+
+  Tops.forEach(queen => {
+    if(!queen)
+    {
+      return;
+    }
+
+    if(winnerSet.has(queen))
+    {
+      outcome.placements.set(queen, doublewin ? "DOUBLEWIN" : "WIN");
+    }
+    else
+    {
+      outcome.placements.set(queen, "HIGH");
+    }
+  });
+
+  let bottomQueenSet = new Set(BottomQueens);
+  Bottoms.forEach(queen => {
+    if(!queen)
+    {
+      return;
+    }
+
+    if(bottomQueenSet.has(queen))
+    {
+      outcome.placements.set(queen, "BOTTOM");
+    }
+    else
+    {
+      outcome.placements.set(queen, "LOW");
+    }
+  });
+
+  if(BottomQueens.length > 0)
+  {
+    let lipSyncResults = [];
+    BottomQueens.forEach(queen => {
+      if(!queen)
+      {
+        return;
+      }
+
+      let scores = calculateRiggingLipsyncScore(queen);
+      lipSyncResults.push({queen: queen, score: scores.score, originalScore: scores.originalScore});
+    });
+
+    lipSyncResults.sort((a, b) => b.score - a.score);
+    outcome.lipSyncResults = lipSyncResults;
+    determineStandardLipsyncPlacements(outcome, lipSyncResults);
+    harmonizeRiggingLipSyncResults(outcome);
+  }
+
+  outcome.originalPlacements = new Map(outcome.placements);
+
+  return outcome;
+}
+
+function harmonizeRiggingLipSyncResults(outcome)
+{
+  if(!outcome || !outcome.lipSyncResults || !outcome.placements)
+  {
+    return;
+  }
+
+  let survivors = [];
+  let eliminated = [];
+
+  outcome.lipSyncResults.forEach(entry => {
+    if(!entry || !entry.queen)
+    {
+      return;
+    }
+
+    let placement = outcome.placements.get(entry.queen);
+    if(placement && normalizePlacementValue(placement) === "ELIMINATED")
+    {
+      eliminated.push(entry);
+    }
+    else
+    {
+      survivors.push(entry);
+    }
+  });
+
+  survivors.forEach(entry => {
+    entry.originalScore = Math.max(entry.originalScore, 12);
+    entry.score = Math.max(entry.score, 12);
+  });
+
+  eliminated.forEach(entry => {
+    entry.originalScore = Math.min(entry.originalScore, 0);
+    entry.score = Math.min(entry.score, 0);
+  });
+}
+
+function applyStoredLipsyncScores(episodeIndex)
+{
+  let outcome = getRiggingOutcome(episodeIndex);
+  if(!outcome || !outcome.lipSyncResults || outcome.lipSyncResults.length === 0)
+  {
+    return false;
+  }
+
+  let applied = false;
+  for (let index = 0; index < outcome.lipSyncResults.length; index++)
+  {
+    let entry = outcome.lipSyncResults[index];
+    if(entry && entry.queen)
+    {
+      entry.queen.lipsyncscore = entry.score;
+      entry.queen.oglipsyncscore = entry.originalScore;
+      applied = true;
+    }
+  }
+
+  return applied;
+}
+
+function prepareRiggingForEpisode(episodeIndex)
+{
+  if(episodeIndex == null || episodeIndex < 0)
+  {
+    return false;
+  }
+
+  if(CurrentSeason && CurrentSeason.premiereformat === "DOUBLE" && episodeIndex < 2)
+  {
+    return false;
+  }
+
+  SyncDoublePremiereTrackRecords();
+
+  riggingEpisodeIndex = episodeIndex;
+  riggingQueens = [];
+
+  let seenQueens = new Set();
+  let addQueen = queen => {
+    if(!queen || seenQueens.has(queen))
+    {
+      return;
+    }
+
+    if(!queen.trackrecord)
+    {
+      queen.trackrecord = [];
+    }
+
+    if(typeof queen.trackrecord[riggingEpisodeIndex] === "undefined")
+    {
+      queen.trackrecord[riggingEpisodeIndex] = "";
+    }
+
+    seenQueens.add(queen);
+    riggingQueens.push(queen);
+  };
+
+  for (let index = 0; index < CurrentSeason.currentCast.length; index++)
+  {
+    addQueen(CurrentSeason.currentCast[index]);
+  }
+
+  for (let index = 0; index < CurrentSeason.eliminatedCast.length; index++)
+  {
+    let eliminatedQueen = CurrentSeason.eliminatedCast[index];
+    if(eliminatedQueen && eliminatedQueen.trackrecord && eliminatedQueen.trackrecord.length > riggingEpisodeIndex)
+    {
+      addQueen(eliminatedQueen);
+    }
+  }
+
+  ensureRiggingOutcome(episodeIndex);
+
+  return riggingQueens.length > 0;
+}
+
+function Rigging()
+{
+  if(CurrentSeason.episodes.length === 0)
+  {
+    Main = new Screen();
+    Main.clean();
+    Main.createBigText("Producer Rigging");
+    Main.createText("No episodes have aired yet. Start the season before rigging placements!", "Bold");
+    Main.createBR();
+    Main.createButton("Back", "TrackRecords()");
+    return;
+  }
+
+  if(typeof riggingReturnCallback !== "function")
+  {
+    riggingReturnCallback = GetPromoTable;
+  }
+
+  if(riggingEpisodeIndex === null)
+  {
+    let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+    if(!prepareRiggingForEpisode(latestEpisodeIndex))
+    {
+      riggingLastEpisodeIndex = latestEpisodeIndex;
+      riggingActive = false;
+      invokeRiggingReturnCallback();
+      return;
+    }
+  }
+
+  if(riggingQueens.length === 0)
+  {
+    let completedEpisodeIndex = riggingEpisodeIndex;
+    riggingEpisodeIndex = null;
+    riggingLastEpisodeIndex = completedEpisodeIndex;
+    riggingActive = false;
+    invokeRiggingReturnCallback();
+    return;
+  }
+
+  riggingActive = true;
+
+  Main = new Screen();
+  Main.clean();
+  Main.createBigText("Producer Rigging");
+
+  let subheading = document.createElement("p");
+  subheading.innerHTML = `Before we reveal <strong>${CurrentSeason.episodes[riggingEpisodeIndex].name}</strong>, you can finesse the results. Adjust any placements you don't agree with, then reveal the episode.`;
+  subheading.setAttribute("style", "max-width: 760px; margin: 12px auto 22px; font-size: 18px; line-height: 1.4; text-align: center; color: #f0f0f0;");
+  Main.MainScreen.append(subheading);
+
+  let grid = document.createElement("div");
+  grid.setAttribute("style","display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; padding: 10px 0; align-items: stretch;");
+
+  riggingQueens.sort((a, b) => compareRiggingQueens(riggingEpisodeIndex, a, b));
+
+  for (let index = 0; index < riggingQueens.length; index++)
+  {
+    let queen = riggingQueens[index];
+    let card = document.createElement("div");
+    card.setAttribute("style","background: rgba(0, 0, 0, 0.45); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 14px; box-shadow: 0 12px 24px rgba(0,0,0,0.35); backdrop-filter: blur(4px);");
+
+    let img = document.createElement("img");
+    img.src = queen.image;
+    img.setAttribute("style","width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.35); box-shadow: 0 0 0 4px rgba(255,255,255,0.08);");
+    card.appendChild(img);
+
+    let name = document.createElement("p");
+    name.innerHTML = queen.GetName();
+    name.setAttribute("style","font-weight: 700; margin: 0; text-align: center; font-size: 18px; letter-spacing: 0.4px;");
+    card.appendChild(name);
+
+    if(riggingEpisodeIndex > 0)
+    {
+      let historyLabel = document.createElement("p");
+      historyLabel.innerHTML = "Past track record";
+      historyLabel.setAttribute("style","margin: 0; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #c6c6c6;");
+      card.appendChild(historyLabel);
+
+      let historyRow = document.createElement("div");
+      historyRow.setAttribute("style","display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: 100%;");
+
+      let hasHistory = false;
+      for (let epIndex = 0; epIndex < riggingEpisodeIndex; epIndex++)
+      {
+        let placement = queen.trackrecord[epIndex];
+        let badge = createPlacementBadgeElement(placement);
+        if(CurrentSeason.episodes[epIndex])
+        {
+          badge.setAttribute("title", `${CurrentSeason.episodes[epIndex].name} (${CurrentSeason.episodes[epIndex].type})`);
+        }
+        if(placement != null && placement.toString().trim() !== "")
+        {
+          hasHistory = true;
+        }
+        historyRow.appendChild(badge);
+      }
+
+      if(historyRow.childNodes.length === 0)
+      {
+        let emptyHistory = document.createElement("span");
+        emptyHistory.innerHTML = "No previous placements";
+        emptyHistory.setAttribute("style","font-size: 12px; color: #b8b8b8;");
+        historyRow.appendChild(emptyHistory);
+      }
+      else if(!hasHistory)
+      {
+        let debutTag = document.createElement("span");
+        debutTag.innerHTML = "Debut episode";
+        debutTag.setAttribute("style","font-size: 12px; color: #b8b8b8;");
+        historyRow.appendChild(debutTag);
+      }
+
+      card.appendChild(historyRow);
+    }
+
+    let predictedPlacement = getRiggingPredictedPlacement(riggingEpisodeIndex, queen) || "";
+    let currentPlacement = predictedPlacement;
+    if(currentPlacement === "")
+    {
+      let trackValue = queen.trackrecord && queen.trackrecord.length > riggingEpisodeIndex ? queen.trackrecord[riggingEpisodeIndex] : "";
+      if(trackValue && trackValue !== "")
+      {
+        currentPlacement = trackValue;
+      }
+      else
+      {
+        currentPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
+      }
+    }
+    let currentWrapper = document.createElement("div");
+    currentWrapper.setAttribute("style","display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%;");
+
+    let placementLabel = document.createElement("p");
+    placementLabel.innerHTML = "Judges' call";
+    placementLabel.setAttribute("style","margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #d5d5d5;");
+    currentWrapper.appendChild(placementLabel);
+
+    let currentBadge = createPlacementBadgeElement(currentPlacement, "large");
+    currentBadge.setAttribute("style", currentBadge.getAttribute("style") + " min-width: 96px; text-align: center;");
+    currentWrapper.appendChild(currentBadge);
+
+    card.appendChild(currentWrapper);
+
+    let selectLabel = document.createElement("p");
+    selectLabel.innerHTML = "Rigged placement";
+    selectLabel.setAttribute("style","margin: 4px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #bdbdbd;");
+    card.appendChild(selectLabel);
+
+    let select = document.createElement("select");
+    select.setAttribute("data-rigging-index", index);
+    select.setAttribute("style","padding: 8px 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.12); color: #ffffff; text-align: center; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; width: 100%; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);");
+
+    const options = [
+      {value: 'WIN', label: 'WIN'},
+      {value: 'DOUBLEWIN', label: 'DOUBLE WIN'},
+      {value: 'TOP2', label: 'TOP 2'},
+      {value: 'HIGH', label: 'HIGH'},
+      {value: 'SAFE', label: 'SAFE'},
+      {value: 'LOW', label: 'LOW'},
+      {value: 'BOTTOM', label: 'BOTTOM'},
+      {value: 'ELIMINATED', label: 'ELIMINATED'},
+      {value: 'NONE', label: 'Not in episode'}
+    ];
+
+    options.forEach(option => {
+      let opt = document.createElement("option");
+      opt.value = option.value;
+      opt.text = option.label;
+      select.appendChild(opt);
+    });
+
+    let riggedPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
+    let normalizedRigged = normalizePlacementValue(riggedPlacement);
+    if(riggedPlacement === "" || normalizedRigged === "")
+    {
+      select.value = 'NONE';
+    }
+    else if(options.some(opt => opt.value === normalizedRigged))
+    {
+      select.value = normalizedRigged;
+    }
+    else if(options.some(opt => opt.value === riggedPlacement))
+    {
+      select.value = riggedPlacement;
+    }
+    else
+    {
+      select.value = 'NONE';
+    }
+
+    select.addEventListener("change", event => {
+      let queenRef = riggingQueens[index];
+      if(!queenRef)
+      {
+        return;
+      }
+
+      let newPlacement = event.target.value === 'NONE' ? "" : event.target.value;
+      let previousPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queenRef) || "";
+      if(previousPlacement === newPlacement)
+      {
+        return;
+      }
+
+      setRiggingOutcomePlacement(riggingEpisodeIndex, queenRef, newPlacement);
+      harmonizeRiggingLipSyncResults(getRiggingOutcome(riggingEpisodeIndex));
+
+      if(typeof window !== "undefined" && typeof window.requestAnimationFrame === "function")
+      {
+        window.requestAnimationFrame(() => {
+          Rigging();
+        });
+      }
+      else
+      {
+        setTimeout(() => {
+          Rigging();
+        }, 0);
+      }
+    });
+
+    card.appendChild(select);
+    grid.appendChild(card);
+  }
+
+  Main.MainScreen.append(grid);
+
+  let actions = document.createElement("div");
+  actions.setAttribute("style","display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-top: 28px;");
+
+  let applyButton = document.createElement("button");
+  applyButton.innerHTML = "Apply placements";
+  applyButton.setAttribute("onclick", "ApplyRigging()");
+  applyButton.setAttribute("class", "button MainButton");
+  actions.appendChild(applyButton);
+
+  let skipButton = document.createElement("button");
+  skipButton.innerHTML = "Reveal original results";
+  skipButton.setAttribute("onclick", "SkipRigging()");
+  skipButton.setAttribute("class", "button MainButton");
+  skipButton.setAttribute("style", "background: rgba(255,255,255,0.08); color: #f0f0f0; border: 1px solid rgba(255,255,255,0.25);");
+  actions.appendChild(skipButton);
+
+  Main.MainScreen.append(actions);
+}
+
+function ApplyRigging()
+{
+  if(riggingQueens.length === 0 || riggingEpisodeIndex === null)
+  {
+    riggingActive = false;
+    invokeRiggingReturnCallback();
+    return;
+  }
+
+  let targetEpisodeIndex = riggingEpisodeIndex;
+  let selects = document.querySelectorAll('[data-rigging-index]');
+  selects.forEach(select => {
+    let index = parseInt(select.getAttribute('data-rigging-index'));
+    let queen = riggingQueens[index];
+    if(!queen)
+    {
+      return;
+    }
+
+    let newPlacement = select.value;
+    if(newPlacement === 'NONE')
+    {
+      newPlacement = "";
+    }
+
+    let currentPlacement = queen.trackrecord[targetEpisodeIndex] || "";
+    if(currentPlacement === newPlacement)
+    {
+      return;
+    }
+
+    applyPlacementDelta(queen, currentPlacement, -1);
+    applyPlacementDelta(queen, newPlacement, 1);
+
+    queen.trackrecord[targetEpisodeIndex] = newPlacement;
+    setRiggingOutcomePlacement(targetEpisodeIndex, queen, newPlacement);
+  });
+
+  harmonizeRiggingLipSyncResults(getRiggingOutcome(targetEpisodeIndex));
+  applyRiggingOutcomeToJudging(targetEpisodeIndex);
+
+  riggingQueens = [];
+  riggingEpisodeIndex = null;
+  riggingLastEpisodeIndex = targetEpisodeIndex;
+  riggingActive = false;
+
+  SyncDoublePremiereTrackRecords();
+  invokeRiggingReturnCallback();
+}
+
+function SkipRigging()
+{
+  if(riggingEpisodeIndex === null)
+  {
+    riggingActive = false;
+    invokeRiggingReturnCallback();
+    return;
+  }
+
+  let completedEpisodeIndex = riggingEpisodeIndex;
+  resetRiggingOutcomePlacements(completedEpisodeIndex);
+  applyRiggingOutcomeToJudging(completedEpisodeIndex);
+  riggingQueens = [];
+  riggingEpisodeIndex = null;
+  riggingLastEpisodeIndex = completedEpisodeIndex;
+  riggingActive = false;
+
+  SyncDoublePremiereTrackRecords();
+  invokeRiggingReturnCallback();
 }
 
 function convertToImage() {
