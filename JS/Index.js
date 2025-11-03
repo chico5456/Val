@@ -78,7 +78,9 @@ let originaltop = [];
 
 let starscount = [];
 
-
+// Badonka Dunk twist variables
+let badonkaDunkLoser = null;
+let badonkaDunkPulledLever = null;
 
 let riggingQueens = [];
 let riggingEpisodeIndex = null;
@@ -222,6 +224,12 @@ class Season {
 
     this.immunity = false;
     this.animals = false;
+
+    // Badonka Dunk twist (S17) - losing queen pulls lever to try to save themselves
+    this.badonkaDunk = false;
+    this.badonkaDunkEndEpisode = 6; // Episode where twist ends (0-indexed)
+    this.badonkaDunkLevers = [true, false, false, false, false, false, true]; // Levers 1 and 7 save (index 0 and 6)
+    this.badonkaDunkPulledLevers = []; // Track which levers have been pulled
   }
 
   checkTwists(Twists){
@@ -229,6 +237,8 @@ class Season {
       this.immunity = true;
     if(Twists.indexOf("Animals")!= -1)
       this.animals = true;
+    if(Twists.indexOf("BadonkaDunk")!= -1)
+      this.badonkaDunk = true;
   }
 
   getFullCast()
@@ -8387,6 +8397,24 @@ let plasma = new Queen("Plasma", 7, 7, 7, 7, 7, 7, 7, 7, 7, 2, 2, "Plasma", "Pla
 
 let US16 = shuffle([amandaTori, dawn, mirage, morphine, Q, sapphira, xunami, geneva, hershii, megami, mhiya, nymphia, plane, plasma]);
 
+// Season 17 Cast
+let onyaNurve = new Queen("Onya Nurve", 12, 13, 14, 10, 9, 11, 11, 12, 13, 3, 3, "OnyaNurve", "OnyaNurve", "US17", false);
+let jewelsSparkles = new Queen("Jewels Sparkles", 10, 10, 11, 11, 12, 13, 12, 11, 12, 3, 2, "JewelsSparkles", "JewelsSparkles", "US17", false);
+let lexiLove = new Queen("Lexi Love", 9, 10, 10, 14, 9, 11, 12, 10, 11, 3, 2, "LexiLove", "LexiLove", "US17", false);
+let samStar = new Queen("Sam Star", 10, 9, 10, 9, 13, 12, 10, 11, 10, 3, 2, "SamStar", "SamStar", "US17", false);
+let suzieToot = new Queen("Suzie Toot", 9, 10, 11, 13, 9, 10, 11, 10, 11, 3, 2, "SuzieToot", "SuzieToot", "US17", false);
+let lydiaBKollins = new Queen("Lydia B Kollins", 10, 11, 13, 8, 8, 9, 11, 10, 10, 3, 3, "LydiaBKollins", "LydiaBKollins", "US17", false);
+let lanaJaRae = new Queen("Lana Ja'Rae", 7, 7, 8, 8, 7, 9, 10, 8, 9, 4, 2, "LanaJaRae", "LanaJaRae", "US17", false);
+let arrietty = new Queen("Arrietty", 8, 8, 8, 9, 13, 12, 9, 9, 9, 3, 2, "Arrietty", "Arrietty", "US17", false);
+let koriKing = new Queen("Kori King", 8, 8, 9, 9, 8, 9, 9, 8, 9, 3, 2, "KoriKing", "KoriKing", "US17", false);
+let acaciaForgot = new Queen("Acacia Forgot", 7, 7, 7, 7, 7, 8, 9, 7, 8, 3, 2, "AcaciaForgot", "AcaciaForgot", "US17", false);
+let crystalEnvy = new Queen("Crystal Envy", 9, 9, 10, 10, 9, 10, 10, 9, 10, 5, 1, "CrystalEnvy", "CrystalEnvy", "US17", false);
+let hormonaLisa = new Queen("Hormona Lisa", 10, 10, 12, 8, 7, 8, 9, 9, 10, 3, 2, "HormonaLisa", "HormonaLisa", "US17", false);
+let joella = new Queen("Joella", 7, 7, 8, 8, 7, 8, 8, 7, 8, 3, 2, "Joella", "Joella", "US17", false);
+let luckyStarzzz = new Queen("Lucky Starzzz", 7, 7, 7, 8, 7, 8, 8, 7, 8, 3, 2, "LuckyStarzzz", "LuckyStarzzz", "US17", false);
+
+let US17 = shuffle([onyaNurve, jewelsSparkles, lexiLove, samStar, suzieToot, lydiaBKollins, lanaJaRae, arrietty, koriKing, acaciaForgot, crystalEnvy, hormonaLisa, joella, luckyStarzzz]);
+
 let chadas1 = new Queen("Chad Michaels", 11, 12, 10, 8, 9, 10, 8, 11, 8, 2, 2, "Chad", "Chad", "AS1", false)
 let ravenas1 = new Queen("Raven", 5, 5, 8, 9, 10, 8, 11, 5, 11, 2, 2, "Raven", "Raven", "AS1", false);
 let jujubeeas1 = new Queen("Jujubee", 9, 12, 11, 7, 8, 6, 12, 9, 12, 2, 2, "Jujubee", "Jujubee", "AS1", false);
@@ -11518,6 +11546,14 @@ function DoublePremiereLipsync() {
   }
 }
 
+function badonkaDunkPullLever(leverIndex) {
+  // Store which lever was pulled
+  badonkaDunkPulledLever = leverIndex;
+  // Move to next step (case 9) to process result
+  Steps++;
+  Lipsync();
+}
+
 function Lipsync() {
   if(CurrentSeason.episodes.length > 0)
   {
@@ -11847,24 +11883,54 @@ function Lipsync() {
           }
           else
           {
+            // Check if Badonka Dunk is active and we're in the twist period
+            let episodeIndex = CurrentSeason.episodes.length - 1;
+            let isBadonkaDunkActive = CurrentSeason.badonkaDunk &&
+                                      episodeIndex >= 1 && // Starts episode 2 (index 1)
+                                      episodeIndex < CurrentSeason.badonkaDunkEndEpisode;
 
-            Main.createBigText("Sashay away...");
-            Main.createImageBW(BottomQueens[1].image, "#fa2525");
-            Main.createText(BottomQueens[1].GetName()+", my dear queen.", 'Bold');
-            Main.createText("I cannot wait for the world to fall in love with you, now. Sashay away...", 'Bold');
-            BottomQueens[1].trackrecord.push("ELIMINATED");
-            if(CurrentSeason.eliminatedCast.length==0)
+            if(isBadonkaDunkActive)
             {
-              BottomQueens[1].placement= CurrentSeason.fullCast.length-CurrentSeason.eliminatedCast.length;
+              // Store the loser for Badonka Dunk
+              badonkaDunkLoser = BottomQueens[1];
+              badonkaDunkPulledLever = null;
+
+              // Show that the queen lost but don't eliminate yet
+              Main.createBigText("Sashay away...");
+              Main.createImageBW(BottomQueens[1].image, "#fa2525");
+              Main.createText(BottomQueens[1].GetName()+", my dear queen.", 'Bold');
+              Main.createText("I cannot wait for the world to fall in love with you, now. Sashay away...", 'Bold');
+              Main.createBR();
+              Main.createText("But wait!", 'Bold');
+              Main.createText("It's time for... BADONKA DUNK! 💦", 'Bold');
+
+              // Lipsync recorded with TBD result
+              let ls = new LipsyncSong([BottomQueens[0],BottomQueens[1]], songschosen, CurrentSeason.episodes.length, 'btm', "BADONKA_DUNK_TBD");
+              CurrentSeason.lipsyncs.push(ls);
+
+              // Don't eliminate yet - continue to step 8 for Badonka Dunk
             }
             else
             {
-              BottomQueens[1].placement= CurrentSeason.fullCast.length-CurrentSeason.eliminatedCast.length;
+              // Normal elimination
+              Main.createBigText("Sashay away...");
+              Main.createImageBW(BottomQueens[1].image, "#fa2525");
+              Main.createText(BottomQueens[1].GetName()+", my dear queen.", 'Bold');
+              Main.createText("I cannot wait for the world to fall in love with you, now. Sashay away...", 'Bold');
+              BottomQueens[1].trackrecord.push("ELIMINATED");
+              if(CurrentSeason.eliminatedCast.length==0)
+              {
+                BottomQueens[1].placement= CurrentSeason.fullCast.length-CurrentSeason.eliminatedCast.length;
+              }
+              else
+              {
+                BottomQueens[1].placement= CurrentSeason.fullCast.length-CurrentSeason.eliminatedCast.length;
+              }
+              let ls = new LipsyncSong([BottomQueens[0],BottomQueens[1]], songschosen, CurrentSeason.episodes.length, 'btm', [BottomQueens[1]]);
+              CurrentSeason.lipsyncs.push(ls);
+              CurrentSeason.currentCast.splice(CurrentSeason.currentCast.indexOf(BottomQueens[1]),1);
+              CurrentSeason.eliminatedCast.unshift(BottomQueens[1]);
             }
-            let ls = new LipsyncSong([BottomQueens[0],BottomQueens[1]], songschosen, CurrentSeason.episodes.length, 'btm', [BottomQueens[1]]);
-            CurrentSeason.lipsyncs.push(ls);
-            CurrentSeason.currentCast.splice(CurrentSeason.currentCast.indexOf(BottomQueens[1]),1);
-            CurrentSeason.eliminatedCast.unshift(BottomQueens[1]);
 
           }
         }
@@ -11966,9 +12032,108 @@ function Lipsync() {
           }
         break;
       }
+      case 8:
+      {
+        // Badonka Dunk - Show lever interface
+        if(badonkaDunkLoser != null)
+        {
+          Main.createBigText("BADONKA DUNK! 💦");
+          Main.createImage(badonkaDunkLoser.image, "#fa2525");
+          Main.createText(badonkaDunkLoser.GetName()+", you have one chance to save yourself!", 'Bold');
+          Main.createText("Pull a lever... if you dunk Michelle into the water, you'll be saved from elimination.", 'Bold');
+          Main.createBR();
+
+          // Show available levers
+          let availableLevers = [];
+          for(let i = 0; i < CurrentSeason.badonkaDunkLevers.length; i++)
+          {
+            if(!CurrentSeason.badonkaDunkPulledLevers.includes(i))
+            {
+              availableLevers.push(i);
+            }
+          }
+
+          Main.createText("Choose a lever:", 'Bold');
+          for(let leverIndex of availableLevers)
+          {
+            Main.createButton("Lever " + (leverIndex + 1), `badonkaDunkPullLever(${leverIndex})`);
+          }
+        }
+        else
+        {
+          // No Badonka Dunk this step, skip directly to end
+          Steps = 9; // Skip to end
+        }
+        break;
+      }
+      case 9:
+      {
+        // Badonka Dunk - Process result
+        if(badonkaDunkLoser != null && badonkaDunkPulledLever != null)
+        {
+          let didDunk = CurrentSeason.badonkaDunkLevers[badonkaDunkPulledLever];
+          CurrentSeason.badonkaDunkPulledLevers.push(badonkaDunkPulledLever);
+
+          Main.createBigText("BADONKA DUNK! 💦");
+          Main.createImage(badonkaDunkLoser.image, "#fa2525");
+          Main.createText(badonkaDunkLoser.GetName()+" pulls Lever " + (badonkaDunkPulledLever + 1) + "...", 'Bold');
+          Main.createBR();
+
+          if(didDunk)
+          {
+            // Michelle dunked! Queen is saved!
+            Main.createText("💦 SPLASH! Michelle gets dunked into the water! 💦", 'Bold');
+            Main.createText(badonkaDunkLoser.GetName()+", you're SAVED from elimination!", 'Bold');
+            Main.createText("Shantay you stay!", 'Bold');
+
+            // Update track record - she's saved (BOTTOM instead of ELIMINATED)
+            badonkaDunkLoser.trackrecord.push("BOTTOM");
+            badonkaDunkLoser.ppe += 1;
+
+            // Update lipsync record to show she was saved
+            if(CurrentSeason.lipsyncs.length > 0)
+            {
+              let lastLipsync = CurrentSeason.lipsyncs[CurrentSeason.lipsyncs.length - 1];
+              lastLipsync.eliminated = "SAVED_BY_BADONKA_DUNK";
+            }
+          }
+          else
+          {
+            // Michelle not dunked - queen is eliminated
+            Main.createText("Nothing happens... Michelle stays dry.", 'Bold');
+            Main.createText(badonkaDunkLoser.GetName()+", I'm sorry my dear, but you must sashay away.", 'Bold');
+
+            // Eliminate the queen
+            badonkaDunkLoser.trackrecord.push("ELIMINATED");
+            if(CurrentSeason.eliminatedCast.length==0)
+            {
+              badonkaDunkLoser.placement= CurrentSeason.fullCast.length-CurrentSeason.eliminatedCast.length;
+            }
+            else
+            {
+              badonkaDunkLoser.placement= CurrentSeason.fullCast.length-CurrentSeason.eliminatedCast.length;
+            }
+
+            // Update lipsync record
+            if(CurrentSeason.lipsyncs.length > 0)
+            {
+              let lastLipsync = CurrentSeason.lipsyncs[CurrentSeason.lipsyncs.length - 1];
+              lastLipsync.eliminated = [badonkaDunkLoser];
+            }
+
+            CurrentSeason.currentCast.splice(CurrentSeason.currentCast.indexOf(badonkaDunkLoser),1);
+            CurrentSeason.eliminatedCast.unshift(badonkaDunkLoser);
+          }
+
+          // Reset Badonka Dunk variables
+          badonkaDunkLoser = null;
+          badonkaDunkPulledLever = null;
+        }
+        break;
+      }
     }
     Steps++;
-    if(Steps<8)
+    if(Steps<10)
       Main.createButton("Proceed", "Lipsync()");
     else
     {
