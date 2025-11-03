@@ -1541,10 +1541,7 @@ class Screen {
 
         if(trimmedPlacement !== "")
         {
-          if(queen.miniwon.indexOf(t+1)!=-1)
-          {
-            trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
-          }
+          // Mini challenge winner removed to prevent cell size changes
 
           if(queen.immune.indexOf(t+1)!=-1)
           {
@@ -1556,6 +1553,20 @@ class Screen {
 
         track.append(trtr);
       }
+
+      // Add PPE or Stars column at the end
+      let ppeCell = document.createElement("td");
+      ppeCell.setAttribute("class","tr");
+      ppeCell.setAttribute("style","text-align: center; font-weight: bold;");
+      if(CurrentSeason.lipsyncformat=="AS7")
+      {
+        ppeCell.innerHTML = queen.stars || 0;
+      }
+      else
+      {
+        ppeCell.innerHTML = queen.ppe.toFixed(2);
+      }
+      track.append(ppeCell);
 
       tbody.append(track);
     }
@@ -1618,10 +1629,7 @@ class Screen {
 
         if(trimmedPlacement !== "")
         {
-          if(queen.miniwon.indexOf(t+1)!=-1)
-          {
-            trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
-          }
+          // Mini challenge winner removed to prevent cell size changes
 
           if(queen.immune.indexOf(t+1)!=-1)
           {
@@ -1633,6 +1641,20 @@ class Screen {
 
         track.append(trtr);
       }
+
+      // Add PPE or Stars column at the end
+      let ppeCell = document.createElement("td");
+      ppeCell.setAttribute("class","tr");
+      ppeCell.setAttribute("style","text-align: center; font-weight: bold;");
+      if(CurrentSeason.lipsyncformat=="AS7")
+      {
+        ppeCell.innerHTML = queen.stars || 0;
+      }
+      else
+      {
+        ppeCell.innerHTML = queen.ppe.toFixed(2);
+      }
+      track.append(ppeCell);
 
       tbody.append(track);
     }
@@ -12629,7 +12651,15 @@ function GetPromoTable()
     console.log("Rigging active:", riggingActive);
     console.log("Rigging last episode index:", riggingLastEpisodeIndex);
 
-    if(CurrentSeason.episodes.length > 0)
+    // Check if we're at finale stage - don't trigger rigging for finale
+    let isFinaleTime = (
+      ((CurrentSeason.finaleformat == "TOP3" || CurrentSeason.finaleformat == "TOP3NE") && CurrentSeason.currentCast.length == 3) ||
+      (CurrentSeason.finaleformat == "LSFTC" && CurrentSeason.currentCast.length == 4)
+    ) && ((CurrentSeason.premiereformat != "NORMAL" && CurrentSeason.episodes.length > 2) || (CurrentSeason.premiereformat == "NORMAL"));
+
+    console.log("isFinaleTime:", isFinaleTime);
+
+    if(CurrentSeason.episodes.length > 0 && !isFinaleTime)
     {
       let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
       console.log("Latest episode index:", latestEpisodeIndex);
@@ -13111,7 +13141,7 @@ function SelectChallenge(){
     let btn = document.createElement("button");
     btn.innerHTML = `<span style="font-size: 22px; display: block;">${challenge.emoji || "✨"}</span><span style="display: block; margin-top: 6px; font-size: 15px; letter-spacing: 0.04em;">${challenge.name}</span>`;
     btn.setAttribute("class", "button MainButton");
-    btn.setAttribute("style", "padding: 18px 14px; border-radius: 18px; background: rgba(255,255,255,0.12); color: #ffffff; font-weight: 600; text-transform: uppercase; box-shadow: 0 12px 24px rgba(0,0,0,0.25); backdrop-filter: blur(4px);");
+    btn.setAttribute("style", "padding: 18px 14px; border-radius: 18px; background: rgba(255,255,255,0.92); color: #000000; font-weight: 600; text-transform: uppercase; box-shadow: 0 12px 24px rgba(0,0,0,0.25); backdrop-filter: blur(4px);");
     btn.setAttribute("onclick", `selectedChallengeType='${challenge.value}'; ChallengeAnnouncement();`);
     challengeDiv.appendChild(btn);
   });
@@ -13959,6 +13989,14 @@ function TrackRecords()
   MainScreen.createLine();
   MainScreen.createBR();
 
+  // Check if we're at finale stage
+  let isFinaleTime = (
+    ((CurrentSeason.finaleformat == "TOP3" || CurrentSeason.finaleformat == "TOP3NE") && CurrentSeason.currentCast.length == 3) ||
+    (CurrentSeason.finaleformat == "LSFTC" && CurrentSeason.currentCast.length == 4)
+  ) && ((CurrentSeason.premiereformat != "NORMAL" && CurrentSeason.episodes.length > 2) || (CurrentSeason.premiereformat == "NORMAL"));
+
+  console.log("TrackRecords: isFinaleTime =", isFinaleTime, "done =", done, "currentCast.length =", CurrentSeason.currentCast.length);
+
   // For DOUBLE premiere, show second group entrances after episode 1 (but not after episode 2)
   if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat=="DOUBLE" && !secondGroupEntrancesShown)
   {
@@ -13970,6 +14008,12 @@ function TrackRecords()
   {
     console.log("TrackRecords: Adding button to CreateEntrances() for non-DOUBLE premiere episode 2");
     MainScreen.createButton("Proceed","CreateEntrances()");
+  }
+  // If it's finale time, trigger Finale() instead of SelectChallenge()
+  else if(isFinaleTime && done==false)
+  {
+    console.log("TrackRecords: Adding button to Finale()");
+    MainScreen.createButton("Proceed","Finale()");
   }
   else if(done==false)
   {
@@ -14036,14 +14080,14 @@ function applyTrackRecordPlacementStyle(cell, placementValue)
       break;
 
     case "ELIM":
-      cell.innerHTML = "ELIMINATED";
+      cell.innerHTML = "ELIM";
       cell.style.background = "sienna";
       cell.style.fontWeight = "bold";
       cell.style.color = "white";
       break;
 
     case "ELIMINATED":
-      cell.innerHTML = "ELIMINATED";
+      cell.innerHTML = "ELIM";
       cell.style.background = "red";
       cell.style.fontWeight = "bold";
       cell.style.color = "white";
@@ -14120,7 +14164,9 @@ function applyTrackRecordPlacementStyle(cell, placementValue)
     case "BTM":
     case "BTM2":
     case "BTM3":
+      cell.innerHTML = "BTM2";
       cell.style.background = "tomato";
+      cell.style.fontWeight = "bold";
       break;
 
     case "DOUBLEWINNER":
