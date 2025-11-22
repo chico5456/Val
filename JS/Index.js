@@ -1416,20 +1416,57 @@ class Screen {
   }
 
   createTrackRecords(){
+    console.log("=== CREATE TRACK RECORDS TABLE ===");
+    console.log("Episodes count:", CurrentSeason.episodes.length);
+
+    // Validate and fix track record lengths BEFORE rendering
+    console.log("\n🔍 Validating track record lengths before rendering:");
+    for(let q = 0; q < CurrentSeason.currentCast.length; q++)
+    {
+      let queen = CurrentSeason.currentCast[q];
+      if(queen.trackrecord)
+      {
+        console.log(`   ${queen.name}: track record length ${queen.trackrecord.length}, episodes ${CurrentSeason.episodes.length}`);
+        if(queen.trackrecord.length > CurrentSeason.episodes.length)
+        {
+          console.error(`   ❌ ERROR: ${queen.name} has ${queen.trackrecord.length} entries but only ${CurrentSeason.episodes.length} episodes!`);
+          console.error(`   This would create ${queen.trackrecord.length - CurrentSeason.episodes.length} duplicate column(s)!`);
+          console.error(`   TRIMMING to correct length...`);
+          queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+          console.log(`   ✅ Fixed: new length = ${queen.trackrecord.length}`);
+        }
+      }
+    }
+    for(let q = 0; q < CurrentSeason.eliminatedCast.length; q++)
+    {
+      let queen = CurrentSeason.eliminatedCast[q];
+      if(queen.trackrecord)
+      {
+        console.log(`   ${queen.name}: track record length ${queen.trackrecord.length}, episodes ${CurrentSeason.episodes.length}`);
+        if(queen.trackrecord.length > CurrentSeason.episodes.length)
+        {
+          console.error(`   ❌ ERROR: ${queen.name} has ${queen.trackrecord.length} entries but only ${CurrentSeason.episodes.length} episodes!`);
+          console.error(`   TRIMMING to correct length...`);
+          queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+          console.log(`   ✅ Fixed: new length = ${queen.trackrecord.length}`);
+        }
+      }
+    }
+
     let putincenter = document.createElement("center");
     let table = document.createElement("table");
     table.setAttribute("id","TR");
     let thead = document.createElement("thead");
 
     table.setAttribute("class","tr");
-  
+
     let tbody = document.createElement("tbody");
-  
+
     let treps = document.createElement("tr");
-  
+
     let thq = document.createElement("th");
     thq.innerHTML = "Queens";
-    
+
     thq.setAttribute("class","tr");
     thq.setAttribute("style","width: 100px;")
 
@@ -1437,12 +1474,13 @@ class Screen {
 
     let photos = document.createElement("th");
     photos.innerHTML = "Photos";
-    
+
     photos.setAttribute("class","tr");
     photos.setAttribute("style","width: 75px;")
 
     treps.append(photos);
-  
+
+    console.log(`\n📊 Creating ${CurrentSeason.episodes.length} episode header columns`);
     for(let i = 0; i < CurrentSeason.episodes.length; i++)
     {
       let thep = document.createElement("th");
@@ -1459,16 +1497,20 @@ class Screen {
       treps.append(thep);
     }
 
+    console.log("\n📝 Rendering current cast rows:");
     for(let q = 0; q < CurrentSeason.currentCast.length; q++)
     {
+      let queen = CurrentSeason.currentCast[q];
+      console.log(`   ${queen.name}: rendering ${queen.trackrecord.length} cells`);
+
       let track = document.createElement("tr");
 
       let qname = document.createElement("td");
 
-      qname.innerHTML = CurrentSeason.currentCast[q].GetName();
+      qname.innerHTML = queen.GetName();
 
       if(CurrentSeason.animals == true){
-        qname.innerHTML += "<br><small>("+CurrentSeason.currentCast[q].animal.name+")</small>";
+        qname.innerHTML += "<br><small>("+queen.animal.name+")</small>";
       }
 
       qname.setAttribute("class","trq");
@@ -1479,15 +1521,17 @@ class Screen {
 
       let td = document.createElement("td");
 
-      td.setAttribute("style", "background: url("+ CurrentSeason.currentCast[q].image +"); background-size: 102px 102px; background-position: center;");
+      td.setAttribute("style", "background: url("+ queen.image +"); background-size: 102px 102px; background-position: center;");
 
       track.append(td);
 
-      for(let t = 0; t < CurrentSeason.currentCast[q].trackrecord.length; t++)
+      // CRITICAL: Only render cells up to CurrentSeason.episodes.length
+      let maxCells = Math.min(queen.trackrecord.length, CurrentSeason.episodes.length);
+      for(let t = 0; t < maxCells; t++)
       {
         let trtr = document.createElement("td");
 
-        let placementValue = CurrentSeason.currentCast[q].trackrecord[t];
+        let placementValue = queen.trackrecord[t];
         if(placementValue == null)
         {
           placementValue = "";
@@ -1497,12 +1541,9 @@ class Screen {
 
         if(trimmedPlacement !== "")
         {
-          if(CurrentSeason.currentCast[q].miniwon.indexOf(t+1)!=-1)
-          {
-            trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
-          }
+          // Mini challenge winner removed to prevent cell size changes
 
-          if(CurrentSeason.currentCast[q].immune.indexOf(t+1)!=-1)
+          if(queen.immune.indexOf(t+1)!=-1)
           {
             trtr.style.background = "magenta";
             trtr.style.color = "#000000";
@@ -1512,20 +1553,37 @@ class Screen {
 
         track.append(trtr);
       }
+
+      // Add PPE or Stars column at the end
+      let ppeCell = document.createElement("td");
+      ppeCell.setAttribute("class","tr");
+      ppeCell.setAttribute("style","text-align: center; font-weight: bold;");
+      if(CurrentSeason.lipsyncformat=="AS7")
+      {
+        ppeCell.innerHTML = queen.stars || 0;
+      }
+      else
+      {
+        ppeCell.innerHTML = queen.ppe.toFixed(2);
+      }
+      track.append(ppeCell);
 
       tbody.append(track);
     }
+    console.log("=== TRACK RECORDS TABLE COMPLETE ===\n");
 
+    console.log("\n📝 Rendering eliminated cast rows:");
     for(let q = 0; q < CurrentSeason.eliminatedCast.length; q++)
     {
+      let queen = CurrentSeason.eliminatedCast[q];
       let track = document.createElement("tr");
 
       let qname = document.createElement("td");
 
-      qname.innerHTML = CurrentSeason.eliminatedCast[q].GetName();
+      qname.innerHTML = queen.GetName();
 
       if(CurrentSeason.animals == true){
-        qname.innerHTML += "<br><small>("+CurrentSeason.eliminatedCast[q].animal.name+")</small>";
+        qname.innerHTML += "<br><small>("+queen.animal.name+")</small>";
       }
 
       qname.setAttribute("class","trq");
@@ -1536,20 +1594,32 @@ class Screen {
 
       let td = document.createElement("td");
 
-      td.setAttribute("style", "background: url("+ CurrentSeason.eliminatedCast[q].image +"); background-size: 102px 102px; background-position: center;");
+      td.setAttribute("style", "background: url("+ queen.image +"); background-size: 102px 102px; background-position: center;");
 
       track.append(td);
 
-      while(CurrentSeason.eliminatedCast[q].trackrecord.length<CurrentSeason.episodes.length)
+      // Pad track record with empty strings if too short
+      while(queen.trackrecord.length < CurrentSeason.episodes.length)
       {
-        CurrentSeason.eliminatedCast[q].trackrecord.push('');
+        queen.trackrecord.push('');
       }
 
-      for(let t = 0; t < CurrentSeason.eliminatedCast[q].trackrecord.length; t++)
+      // Trim track record if too long
+      if(queen.trackrecord.length > CurrentSeason.episodes.length)
+      {
+        console.error(`   ❌ ${queen.name} track record too long (${queen.trackrecord.length}), trimming to ${CurrentSeason.episodes.length}`);
+        queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+      }
+
+      console.log(`   ${queen.name}: rendering ${queen.trackrecord.length} cells`);
+
+      // CRITICAL: Only render cells up to CurrentSeason.episodes.length
+      let maxCells = Math.min(queen.trackrecord.length, CurrentSeason.episodes.length);
+      for(let t = 0; t < maxCells; t++)
       {
         let trtr = document.createElement("td");
 
-        let placementValue = CurrentSeason.eliminatedCast[q].trackrecord[t];
+        let placementValue = queen.trackrecord[t];
         if(placementValue == null)
         {
           placementValue = "";
@@ -1559,12 +1629,9 @@ class Screen {
 
         if(trimmedPlacement !== "")
         {
-          if(CurrentSeason.eliminatedCast[q].miniwon.indexOf(t+1)!=-1)
-          {
-            trtr.innerHTML += "<br><small><i> Mini-Challenge Winner </i></small>";
-          }
+          // Mini challenge winner removed to prevent cell size changes
 
-          if(CurrentSeason.eliminatedCast[q].immune.indexOf(t+1)!=-1)
+          if(queen.immune.indexOf(t+1)!=-1)
           {
             trtr.style.background = "magenta";
             trtr.style.color = "#000000";
@@ -1574,6 +1641,20 @@ class Screen {
 
         track.append(trtr);
       }
+
+      // Add PPE or Stars column at the end
+      let ppeCell = document.createElement("td");
+      ppeCell.setAttribute("class","tr");
+      ppeCell.setAttribute("style","text-align: center; font-weight: bold;");
+      if(CurrentSeason.lipsyncformat=="AS7")
+      {
+        ppeCell.innerHTML = queen.stars || 0;
+      }
+      else
+      {
+        ppeCell.innerHTML = queen.ppe.toFixed(2);
+      }
+      track.append(ppeCell);
 
       tbody.append(track);
     }
@@ -12495,12 +12576,17 @@ function SyncDoublePremiereTrackRecords()
 {
   if(CurrentSeason.premiereformat != "DOUBLE")
   {
+    console.log("⏭️ Not a double premiere, skipping sync");
     return;
   }
 
   let expectedLength = CurrentSeason.episodes.length;
+  console.log("=== SYNC DOUBLE PREMIERE TRACK RECORDS ===");
+  console.log("Expected track record length:", expectedLength);
+
   if(expectedLength === 0)
   {
+    console.log("⚠️ No episodes yet, skipping sync");
     return;
   }
 
@@ -12508,39 +12594,80 @@ function SyncDoublePremiereTrackRecords()
   {
     if(!queen || !queen.trackrecord)
     {
+      console.log(`⚠️ Queen missing or no track record:`, queen?.name);
       return;
     }
 
+    console.log(`📊 ${queen.name}:`);
+    console.log(`   Track record before sync:`, JSON.stringify(queen.trackrecord));
+    console.log(`   Length: ${queen.trackrecord.length}, Expected: ${expectedLength}`);
+
+    let changesMade = false;
+
     while(queen.trackrecord.length < expectedLength)
     {
+      console.log(`   ➕ Adding empty string to reach expected length`);
       queen.trackrecord.push("");
+      changesMade = true;
     }
 
     if(queen.trackrecord.length > expectedLength)
     {
+      console.log(`   ✂️ Trimming from ${queen.trackrecord.length} to ${expectedLength}`);
       queen.trackrecord = queen.trackrecord.slice(0, expectedLength);
+      changesMade = true;
+    }
+
+    if(changesMade)
+    {
+      console.log(`   Track record after sync:`, JSON.stringify(queen.trackrecord));
+    }
+    else
+    {
+      console.log(`   ✅ No changes needed`);
     }
   };
 
+  console.log("\n🎭 Syncing first premiere group:");
   for (let index = 0; index < firstprem.length; index++)
   {
     ensureLength(firstprem[index]);
   }
 
+  console.log("\n🎭 Syncing second premiere group:");
   for (let index = 0; index < secondprem.length; index++)
   {
     ensureLength(secondprem[index]);
   }
+
+  console.log("=== SYNC COMPLETE ===\n");
 }
 
 
 function GetPromoTable()
   {
-    if(CurrentSeason.episodes.length > 0)
+    console.log("=== GET PROMO TABLE START ===");
+    console.log("Episodes count:", CurrentSeason.episodes.length);
+    console.log("Rigging active:", riggingActive);
+    console.log("Rigging last episode index:", riggingLastEpisodeIndex);
+
+    // Check if we're at finale stage - don't trigger rigging for finale
+    let isFinaleTime = (
+      ((CurrentSeason.finaleformat == "TOP3" || CurrentSeason.finaleformat == "TOP3NE") && CurrentSeason.currentCast.length == 3) ||
+      (CurrentSeason.finaleformat == "LSFTC" && CurrentSeason.currentCast.length == 4)
+    ) && ((CurrentSeason.premiereformat != "NORMAL" && CurrentSeason.episodes.length > 2) || (CurrentSeason.premiereformat == "NORMAL"));
+
+    console.log("isFinaleTime:", isFinaleTime);
+
+    if(CurrentSeason.episodes.length > 0 && !isFinaleTime)
     {
       let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+      console.log("Latest episode index:", latestEpisodeIndex);
+      console.log("Current cast track record lengths:", CurrentSeason.currentCast.map(q => ({name: q.name, length: q.trackrecord?.length || 0})));
+
       if(!riggingActive && riggingLastEpisodeIndex !== latestEpisodeIndex)
       {
+        console.log("🎬 Triggering rigging for episode index:", latestEpisodeIndex);
         riggingEpisodeIndex = null;
         setRiggingReturnCallback(GetPromoTable);
         Rigging();
@@ -13014,7 +13141,7 @@ function SelectChallenge(){
     let btn = document.createElement("button");
     btn.innerHTML = `<span style="font-size: 22px; display: block;">${challenge.emoji || "✨"}</span><span style="display: block; margin-top: 6px; font-size: 15px; letter-spacing: 0.04em;">${challenge.name}</span>`;
     btn.setAttribute("class", "button MainButton");
-    btn.setAttribute("style", "padding: 18px 14px; border-radius: 18px; background: rgba(255,255,255,0.12); color: #ffffff; font-weight: 600; text-transform: uppercase; box-shadow: 0 12px 24px rgba(0,0,0,0.25); backdrop-filter: blur(4px);");
+    btn.setAttribute("style", "padding: 18px 14px; border-radius: 18px; background: rgba(255,255,255,0.92); color: #000000; font-weight: 600; text-transform: uppercase; box-shadow: 0 12px 24px rgba(0,0,0,0.25); backdrop-filter: blur(4px);");
     btn.setAttribute("onclick", `selectedChallengeType='${challenge.value}'; ChallengeAnnouncement();`);
     challengeDiv.appendChild(btn);
   });
@@ -13862,6 +13989,14 @@ function TrackRecords()
   MainScreen.createLine();
   MainScreen.createBR();
 
+  // Check if we're at finale stage
+  let isFinaleTime = (
+    ((CurrentSeason.finaleformat == "TOP3" || CurrentSeason.finaleformat == "TOP3NE") && CurrentSeason.currentCast.length == 3) ||
+    (CurrentSeason.finaleformat == "LSFTC" && CurrentSeason.currentCast.length == 4)
+  ) && ((CurrentSeason.premiereformat != "NORMAL" && CurrentSeason.episodes.length > 2) || (CurrentSeason.premiereformat == "NORMAL"));
+
+  console.log("TrackRecords: isFinaleTime =", isFinaleTime, "done =", done, "currentCast.length =", CurrentSeason.currentCast.length);
+
   // For DOUBLE premiere, show second group entrances after episode 1 (but not after episode 2)
   if(CurrentSeason.episodes.length==1 && CurrentSeason.premiereformat=="DOUBLE" && !secondGroupEntrancesShown)
   {
@@ -13873,6 +14008,12 @@ function TrackRecords()
   {
     console.log("TrackRecords: Adding button to CreateEntrances() for non-DOUBLE premiere episode 2");
     MainScreen.createButton("Proceed","CreateEntrances()");
+  }
+  // If it's finale time, trigger Finale() instead of SelectChallenge()
+  else if(isFinaleTime && done==false)
+  {
+    console.log("TrackRecords: Adding button to Finale()");
+    MainScreen.createButton("Proceed","Finale()");
   }
   else if(done==false)
   {
@@ -13939,14 +14080,14 @@ function applyTrackRecordPlacementStyle(cell, placementValue)
       break;
 
     case "ELIM":
-      cell.innerHTML = "ELIMINATED";
+      cell.innerHTML = "ELIM";
       cell.style.background = "sienna";
       cell.style.fontWeight = "bold";
       cell.style.color = "white";
       break;
 
     case "ELIMINATED":
-      cell.innerHTML = "ELIMINATED";
+      cell.innerHTML = "ELIM";
       cell.style.background = "red";
       cell.style.fontWeight = "bold";
       cell.style.color = "white";
@@ -14023,7 +14164,9 @@ function applyTrackRecordPlacementStyle(cell, placementValue)
     case "BTM":
     case "BTM2":
     case "BTM3":
+      cell.innerHTML = "BTM2";
       cell.style.background = "tomato";
+      cell.style.fontWeight = "bold";
       break;
 
     case "DOUBLEWINNER":
@@ -14901,13 +15044,19 @@ function applyStoredLipsyncScores(episodeIndex)
 
 function prepareRiggingForEpisode(episodeIndex)
 {
+  console.log("=== PREPARE RIGGING FOR EPISODE ===");
+  console.log("Episode index:", episodeIndex);
+  console.log("Episodes length:", CurrentSeason?.episodes?.length);
+
   if(episodeIndex == null || episodeIndex < 0)
   {
+    console.log("❌ Invalid episode index");
     return false;
   }
 
   if(CurrentSeason && CurrentSeason.premiereformat === "DOUBLE" && episodeIndex < 2)
   {
+    console.log("⏭️ Skipping rigging for double premiere episodes 0-1");
     return false;
   }
 
@@ -14928,8 +15077,17 @@ function prepareRiggingForEpisode(episodeIndex)
       queen.trackrecord = [];
     }
 
-    if(typeof queen.trackrecord[riggingEpisodeIndex] === "undefined")
+    console.log(`📊 ${queen.name} track record before prepare:`, JSON.stringify(queen.trackrecord));
+    console.log(`   Track record length: ${queen.trackrecord.length}, Episode index: ${riggingEpisodeIndex}`);
+
+    // Check if track record already has this index populated
+    if(queen.trackrecord.length > riggingEpisodeIndex)
     {
+      console.log(`   ✅ Track record already has entry at index ${riggingEpisodeIndex}: "${queen.trackrecord[riggingEpisodeIndex]}"`);
+    }
+    else if(typeof queen.trackrecord[riggingEpisodeIndex] === "undefined")
+    {
+      console.log(`   ⚠️ Track record missing entry at index ${riggingEpisodeIndex}, setting to empty string`);
       queen.trackrecord[riggingEpisodeIndex] = "";
     }
 
@@ -14953,13 +15111,35 @@ function prepareRiggingForEpisode(episodeIndex)
 
   ensureRiggingOutcome(episodeIndex);
 
+  // Reset all rigging selections for this episode
+  console.log("🔄 Resetting rigging selections for fresh start");
+  riggingQueens.forEach(queen => {
+    if(queen) {
+      delete queen.currentRiggedPlacement;
+      delete queen.riggingButtonsVisible;
+    }
+  });
+
   return riggingQueens.length > 0;
 }
 
 function Rigging()
 {
+  console.log("=== RIGGING UI START ===");
+  console.log("Episodes count:", CurrentSeason.episodes.length);
+  console.log("Rigging episode index:", riggingEpisodeIndex);
+  console.log("Rigging active:", riggingActive);
+
+  // Prevent re-entry: if rigging is already active and UI is shown, don't re-render
+  if(riggingActive && riggingEpisodeIndex !== null && riggingQueens.length > 0)
+  {
+    console.log("⚠️ Rigging already active with UI displayed, preventing re-entry");
+    return;
+  }
+
   if(CurrentSeason.episodes.length === 0)
   {
+    console.log("❌ No episodes yet, showing error message");
     Main = new Screen();
     Main.clean();
     Main.createBigText("Producer Rigging");
@@ -14969,16 +15149,35 @@ function Rigging()
     return;
   }
 
+  // Validate track record state before rigging
+  console.log("\n🔍 Validating track record state:");
+  CurrentSeason.currentCast.forEach(queen => {
+    if(queen.trackrecord)
+    {
+      console.log(`   ${queen.name}: length ${queen.trackrecord.length}, episodes ${CurrentSeason.episodes.length}`);
+      if(queen.trackrecord.length > CurrentSeason.episodes.length)
+      {
+        console.warn(`   ⚠️ WARNING: ${queen.name} track record length (${queen.trackrecord.length}) > episodes length (${CurrentSeason.episodes.length})`);
+        console.warn(`   Trimming to correct length to prevent further duplication`);
+        queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+      }
+    }
+  });
+
   if(typeof riggingReturnCallback !== "function")
   {
+    console.log("Setting default rigging return callback to GetPromoTable");
     riggingReturnCallback = GetPromoTable;
   }
 
   if(riggingEpisodeIndex === null)
   {
     let latestEpisodeIndex = CurrentSeason.episodes.length - 1;
+    console.log("Preparing rigging for latest episode index:", latestEpisodeIndex);
+
     if(!prepareRiggingForEpisode(latestEpisodeIndex))
     {
+      console.log("❌ Failed to prepare rigging, aborting");
       riggingLastEpisodeIndex = latestEpisodeIndex;
       riggingActive = false;
       invokeRiggingReturnCallback();
@@ -14988,6 +15187,7 @@ function Rigging()
 
   if(riggingQueens.length === 0)
   {
+    console.log("❌ No queens to rig, completing episode");
     let completedEpisodeIndex = riggingEpisodeIndex;
     riggingEpisodeIndex = null;
     riggingLastEpisodeIndex = completedEpisodeIndex;
@@ -14997,6 +15197,7 @@ function Rigging()
   }
 
   riggingActive = true;
+  console.log("✅ Rigging active, showing UI for", riggingQueens.length, "queens");
 
   Main = new Screen();
   Main.clean();
@@ -15072,113 +15273,117 @@ function Rigging()
       card.appendChild(historyRow);
     }
 
-    let predictedPlacement = getRiggingPredictedPlacement(riggingEpisodeIndex, queen) || "";
-    let currentPlacement = predictedPlacement;
-    if(currentPlacement === "")
-    {
-      let trackValue = queen.trackrecord && queen.trackrecord.length > riggingEpisodeIndex ? queen.trackrecord[riggingEpisodeIndex] : "";
-      if(trackValue && trackValue !== "")
+    // Get the current placement - either from rigging outcome or track record
+    let currentPlacement = queen.currentRiggedPlacement || "";
+
+    // If no rigged placement yet, get from outcome or track record
+    if(!currentPlacement) {
+      let predictedPlacement = getRiggingPredictedPlacement(riggingEpisodeIndex, queen) || "";
+      currentPlacement = predictedPlacement;
+      if(currentPlacement === "")
       {
-        currentPlacement = trackValue;
+        let trackValue = queen.trackrecord && queen.trackrecord.length > riggingEpisodeIndex ? queen.trackrecord[riggingEpisodeIndex] : "";
+        if(trackValue && trackValue !== "")
+        {
+          currentPlacement = trackValue;
+        }
+        else
+        {
+          currentPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
+        }
       }
-      else
-      {
-        currentPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
+
+      // Normalize BOTTOM to BTM2 for display consistency
+      if(normalizePlacementValue(currentPlacement) === "BOTTOM") {
+        currentPlacement = "BTM2";
       }
+
+      // Store this as the initial placement
+      queen.currentRiggedPlacement = currentPlacement;
     }
+
+    // Create clickable placement badge
     let currentWrapper = document.createElement("div");
-    currentWrapper.setAttribute("style","display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%;");
+    currentWrapper.setAttribute("style","display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; margin-top: 8px;");
 
-    let placementLabel = document.createElement("p");
-    placementLabel.innerHTML = "Judges' call";
-    placementLabel.setAttribute("style","margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #d5d5d5;");
-    currentWrapper.appendChild(placementLabel);
+    let currentBadge = createPlacementBadgeElement(currentPlacement === "BTM2" ? "BOTTOM" : currentPlacement, "large");
+    currentBadge.setAttribute("style", currentBadge.getAttribute("style") + " min-width: 120px; text-align: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.3);");
 
-    let currentBadge = createPlacementBadgeElement(currentPlacement, "large");
-    currentBadge.setAttribute("style", currentBadge.getAttribute("style") + " min-width: 96px; text-align: center;");
+    // Make badge clickable to toggle buttons
+    currentBadge.addEventListener("click", () => {
+      queen.riggingButtonsVisible = !queen.riggingButtonsVisible;
+      Rigging(); // Re-render to show/hide buttons
+    });
+
     currentWrapper.appendChild(currentBadge);
 
     card.appendChild(currentWrapper);
 
-    let selectLabel = document.createElement("p");
-    selectLabel.innerHTML = "Rigged placement";
-    selectLabel.setAttribute("style","margin: 4px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #bdbdbd;");
-    card.appendChild(selectLabel);
+    // Only show buttons if this queen's buttons are visible
+    if(queen.riggingButtonsVisible) {
+      let buttonsGrid = document.createElement("div");
+      buttonsGrid.setAttribute("style","display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; margin-top: 12px; animation: fadeIn 0.2s;");
+      buttonsGrid.setAttribute("data-rigging-index", index);
 
-    let select = document.createElement("select");
-    select.setAttribute("data-rigging-index", index);
-    select.setAttribute("style","padding: 8px 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.12); color: #ffffff; text-align: center; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; width: 100%; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);");
+      const placements = [
+        {value: 'WIN', label: 'WIN', bg: 'royalblue', color: 'white'},
+        {value: 'HIGH', label: 'HIGH', bg: 'lightblue', color: '#000000'},
+        {value: 'SAFE', label: 'SAFE', bg: '#F5EBF5', color: '#000000'},
+        {value: 'LOW', label: 'LOW', bg: 'lightpink', color: '#000000'},
+        {value: 'BTM2', label: 'BTM2', bg: 'tomato', color: 'white'},
+        {value: 'ELIMINATED', label: 'ELIM', bg: 'red', color: 'white'}
+      ];
 
-    const options = [
-      {value: 'WIN', label: 'WIN'},
-      {value: 'DOUBLEWIN', label: 'DOUBLE WIN'},
-      {value: 'TOP2', label: 'TOP 2'},
-      {value: 'HIGH', label: 'HIGH'},
-      {value: 'SAFE', label: 'SAFE'},
-      {value: 'LOW', label: 'LOW'},
-      {value: 'BOTTOM', label: 'BOTTOM'},
-      {value: 'ELIMINATED', label: 'ELIMINATED'},
-      {value: 'NONE', label: 'Not in episode'}
-    ];
+      placements.forEach(placement => {
+        let btn = document.createElement("button");
+        btn.innerHTML = placement.label;
+        btn.setAttribute("data-placement-value", placement.value);
 
-    options.forEach(option => {
-      let opt = document.createElement("option");
-      opt.value = option.value;
-      opt.text = option.label;
-      select.appendChild(opt);
-    });
+        let isSelected = (placement.value === queen.currentRiggedPlacement ||
+                          (placement.value === "BTM2" && queen.currentRiggedPlacement === "BOTTOM"));
 
-    let riggedPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queen) || "";
-    let normalizedRigged = normalizePlacementValue(riggedPlacement);
-    if(riggedPlacement === "" || normalizedRigged === "")
-    {
-      select.value = 'NONE';
-    }
-    else if(options.some(opt => opt.value === normalizedRigged))
-    {
-      select.value = normalizedRigged;
-    }
-    else if(options.some(opt => opt.value === riggedPlacement))
-    {
-      select.value = riggedPlacement;
-    }
-    else
-    {
-      select.value = 'NONE';
-    }
+        let btnStyle = `
+          padding: 10px 6px;
+          border-radius: 8px;
+          border: 2px solid ${isSelected ? '#ffffff' : 'transparent'};
+          background: ${placement.bg};
+          color: ${placement.color};
+          font-size: 13px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          box-shadow: ${isSelected ? '0 0 0 3px rgba(255,255,255,0.3)' : '0 2px 4px rgba(0,0,0,0.2)'};
+        `;
+        btn.setAttribute("style", btnStyle);
 
-    select.addEventListener("change", event => {
-      let queenRef = riggingQueens[index];
-      if(!queenRef)
-      {
-        return;
-      }
+        btn.addEventListener("click", () => {
+          let queenRef = riggingQueens[index];
+          if(!queenRef) return;
 
-      let newPlacement = event.target.value === 'NONE' ? "" : event.target.value;
-      let previousPlacement = getRiggingOutcomePlacement(riggingEpisodeIndex, queenRef) || "";
-      if(previousPlacement === newPlacement)
-      {
-        return;
-      }
+          let newPlacement = placement.value === "BTM2" ? "BOTTOM" : placement.value;
+          queenRef.currentRiggedPlacement = placement.value;
 
-      setRiggingOutcomePlacement(riggingEpisodeIndex, queenRef, newPlacement);
-      harmonizeRiggingLipSyncResults(getRiggingOutcome(riggingEpisodeIndex));
+          console.log(`🎭 Rigging: ${queenRef.name} → ${newPlacement}`);
 
-      if(typeof window !== "undefined" && typeof window.requestAnimationFrame === "function")
-      {
-        window.requestAnimationFrame(() => {
+          // Update rigging outcome
+          setRiggingOutcomePlacement(riggingEpisodeIndex, queenRef, newPlacement);
+
+          // Hide buttons after selection
+          queenRef.riggingButtonsVisible = false;
+
+          // Re-sort and re-render the grid in real-time
+          riggingQueens.sort((a, b) => compareRiggingQueens(riggingEpisodeIndex, a, b));
           Rigging();
         });
-      }
-      else
-      {
-        setTimeout(() => {
-          Rigging();
-        }, 0);
-      }
-    });
 
-    card.appendChild(select);
+        buttonsGrid.appendChild(btn);
+      });
+
+      card.appendChild(buttonsGrid);
+    }
+
     grid.appendChild(card);
   }
 
@@ -15205,43 +15410,109 @@ function Rigging()
 
 function ApplyRigging()
 {
+  console.log("=== APPLY RIGGING START ===");
+  console.log("Rigging queens count:", riggingQueens.length);
+  console.log("Rigging episode index:", riggingEpisodeIndex);
+
   if(riggingQueens.length === 0 || riggingEpisodeIndex === null)
   {
+    console.log("❌ No queens or episode index, aborting rigging");
     riggingActive = false;
     invokeRiggingReturnCallback();
     return;
   }
 
   let targetEpisodeIndex = riggingEpisodeIndex;
-  let selects = document.querySelectorAll('[data-rigging-index]');
-  selects.forEach(select => {
-    let index = parseInt(select.getAttribute('data-rigging-index'));
-    let queen = riggingQueens[index];
+  console.log("Target episode index:", targetEpisodeIndex);
+  console.log("Expected track record length:", CurrentSeason.episodes.length);
+
+  // Validate that target episode index is within bounds
+  if(targetEpisodeIndex >= CurrentSeason.episodes.length)
+  {
+    console.error(`❌ ERROR: Target episode index ${targetEpisodeIndex} is >= episodes length ${CurrentSeason.episodes.length}`);
+    console.error("   This would create out-of-bounds track record entries!");
+    riggingActive = false;
+    invokeRiggingReturnCallback();
+    return;
+  }
+
+  console.log("Processing rigging for", riggingQueens.length, "queens");
+
+  riggingQueens.forEach((queen, index) => {
     if(!queen)
     {
+      console.log(`⚠️ No queen found at index ${index}`);
       return;
     }
 
-    let newPlacement = select.value;
+    // Get placement from the queen's currentRiggedPlacement property
+    let newPlacement = queen.currentRiggedPlacement || "";
     if(newPlacement === 'NONE')
     {
       newPlacement = "";
     }
+    if(newPlacement === 'BTM2')
+    {
+      newPlacement = "BOTTOM";
+    }
+
+    console.log(`\n🎭 Processing ${queen.name}:`);
+    console.log(`   Track record BEFORE:`, JSON.stringify(queen.trackrecord));
+    console.log(`   Track record length:`, queen.trackrecord.length);
+    console.log(`   Target episode index:`, targetEpisodeIndex);
+
+    // Ensure track record has the correct length before accessing
+    if(!queen.trackrecord)
+    {
+      console.log(`   ⚠️ Track record is null/undefined, initializing as empty array`);
+      queen.trackrecord = [];
+    }
+
+    // Ensure track record length matches expected length
+    while(queen.trackrecord.length <= targetEpisodeIndex)
+    {
+      console.log(`   ⚠️ Track record too short (${queen.trackrecord.length}), padding with empty string`);
+      queen.trackrecord.push("");
+    }
 
     let currentPlacement = queen.trackrecord[targetEpisodeIndex] || "";
+    console.log(`   Current placement at index ${targetEpisodeIndex}:`, `"${currentPlacement}"`);
+    console.log(`   New placement selected:`, `"${newPlacement}"`);
+
     if(currentPlacement === newPlacement)
     {
+      console.log(`   ⏭️ No change, skipping`);
       return;
     }
 
+    console.log(`   📉 Removing stats for:`, `"${currentPlacement}"`);
     applyPlacementDelta(queen, currentPlacement, -1);
+
+    console.log(`   📈 Adding stats for:`, `"${newPlacement}"`);
     applyPlacementDelta(queen, newPlacement, 1);
 
+    console.log(`   ✏️ Setting trackrecord[${targetEpisodeIndex}] = "${newPlacement}"`);
     queen.trackrecord[targetEpisodeIndex] = newPlacement;
+
+    console.log(`   Track record AFTER:`, JSON.stringify(queen.trackrecord));
+    console.log(`   Track record length AFTER:`, queen.trackrecord.length);
+
+    // CRITICAL VALIDATION: Ensure track record length doesn't exceed episodes length
+    if(queen.trackrecord.length > CurrentSeason.episodes.length)
+    {
+      console.error(`   ❌ CRITICAL ERROR: Track record length (${queen.trackrecord.length}) > episodes length (${CurrentSeason.episodes.length})`);
+      console.error(`   This indicates duplication! Trimming to correct length...`);
+      queen.trackrecord = queen.trackrecord.slice(0, CurrentSeason.episodes.length);
+      console.log(`   Track record after trim:`, JSON.stringify(queen.trackrecord));
+    }
+
     setRiggingOutcomePlacement(targetEpisodeIndex, queen, newPlacement);
   });
 
+  console.log("\n🔄 Harmonizing lipsync results...");
   harmonizeRiggingLipSyncResults(getRiggingOutcome(targetEpisodeIndex));
+
+  console.log("🎯 Applying rigging outcome to judging...");
   applyRiggingOutcomeToJudging(targetEpisodeIndex);
 
   riggingQueens = [];
@@ -15249,28 +15520,57 @@ function ApplyRigging()
   riggingLastEpisodeIndex = targetEpisodeIndex;
   riggingActive = false;
 
+  console.log("🔄 Running SyncDoublePremiereTrackRecords...");
   SyncDoublePremiereTrackRecords();
+
+  console.log("=== APPLY RIGGING COMPLETE ===");
+  console.log("Final track record lengths:", CurrentSeason.currentCast.map(q => ({name: q.name, length: q.trackrecord?.length || 0, record: JSON.stringify(q.trackrecord)})));
+
+  // Final validation to catch any issues
+  CurrentSeason.currentCast.forEach(queen => {
+    if(queen.trackrecord && queen.trackrecord.length > CurrentSeason.episodes.length)
+    {
+      console.error(`❌ FINAL CHECK FAILED: ${queen.name} has track record length ${queen.trackrecord.length} but only ${CurrentSeason.episodes.length} episodes!`);
+    }
+  });
+
   invokeRiggingReturnCallback();
 }
 
 function SkipRigging()
 {
+  console.log("=== SKIP RIGGING START ===");
+  console.log("Rigging episode index:", riggingEpisodeIndex);
+
   if(riggingEpisodeIndex === null)
   {
+    console.log("❌ No episode index, aborting skip");
     riggingActive = false;
     invokeRiggingReturnCallback();
     return;
   }
 
   let completedEpisodeIndex = riggingEpisodeIndex;
+  console.log("Completed episode index:", completedEpisodeIndex);
+  console.log("Track record lengths before skip:", CurrentSeason.currentCast.map(q => ({name: q.name, length: q.trackrecord?.length || 0})));
+
+  console.log("🔄 Resetting rigging outcome placements...");
   resetRiggingOutcomePlacements(completedEpisodeIndex);
+
+  console.log("🎯 Applying rigging outcome to judging (with original placements)...");
   applyRiggingOutcomeToJudging(completedEpisodeIndex);
+
   riggingQueens = [];
   riggingEpisodeIndex = null;
   riggingLastEpisodeIndex = completedEpisodeIndex;
   riggingActive = false;
 
+  console.log("🔄 Running SyncDoublePremiereTrackRecords...");
   SyncDoublePremiereTrackRecords();
+
+  console.log("=== SKIP RIGGING COMPLETE ===");
+  console.log("Final track record lengths:", CurrentSeason.currentCast.map(q => ({name: q.name, length: q.trackrecord?.length || 0, record: JSON.stringify(q.trackrecord)})));
+
   invokeRiggingReturnCallback();
 }
 
